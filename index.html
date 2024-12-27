@@ -1,96 +1,97 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Actuarial Angles: Insights into actuarial science, pricing strategies, and rate indications.">
   <title>Actuarial Angles</title>
-  <link rel="stylesheet" href="style.css"> <!-- Link to an external CSS file -->
+  <link rel="stylesheet" href="style.css"> <!-- External CSS -->
+  <style>
+    /* Add some basic styles for the side menu */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      background-color: #333;
+      color: #fff;
+      padding: 1rem;
+      text-align: center;
+    }
+    #side-menu {
+      width: 250px;
+      height: 100vh;
+      position: fixed;
+      background-color: #f4f4f4;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+      padding: 20px;
+    }
+    #side-menu a {
+      display: block;
+      padding: 10px;
+      color: #333;
+      text-decoration: none;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    #side-menu a:hover {
+      background-color: #ddd;
+    }
+    #main-content {
+      margin-left: 270px; /* Adjust to accommodate side menu */
+      padding: 20px;
+    }
+  </style>
 </head>
-
 <body>
+
   <!-- Header Section -->
   <header>
-    <div class="container">
-      <h1>Actuarial Angles</h1>
-      <p>Insights into Actuarial Science and Pricing Strategies</p>
-      <nav>
-        <a href="about.html">About</a>
-        <a href="blog.html">Presentations</a>
-        <a href="#reports">Quarterly Reports</a>
-        <a href="contact.html">Contact</a>
-      </nav>
-    </div>
+    <h1>Actuarial Angles</h1>
+    <p>Insights into Actuarial Science and Pricing Strategies</p>
   </header>
 
-  <!-- Hero Section -->
-  <section id="hero">
-    <div class="container">
+  <!-- Side Menu -->
+  <div id="side-menu">
+    <h2>Navigate</h2>
+    <a href="#welcome">Welcome</a>
+    <a href="#rate-indication">Rate Indication</a>
+    <a href="#quarterly-reports">Quarterly Reports</a>
+    <a href="#contact">Contact</a>
+  </div>
+
+  <!-- Main Content -->
+  <div id="main-content">
+    <section id="welcome">
       <h2>Welcome to Actuarial Angles</h2>
       <p>Your source for actuarial insights and data-driven knowledge sharing. Explore the latest on rate indications, pricing strategies, and more!</p>
-      <a href="#presentations" class="btn">Explore Presentations</a>
-    </div>
-  </section>
+    </section>
 
-  <!-- Featured Presentation Section -->
-  <section id="presentations">
-    <div class="container">
-      <h2>Featured Presentation</h2>
-      <div class="video">
-        <h3>Rate Indication Process: A Step-by-Step Walkthrough</h3>
-        <p>Learn how insurers use rate indication to ensure premiums cover projected losses, expenses, and profit margins.</p>
-        <iframe width="560" height="315" src="https://drive.google.com/file/d/1CZ1Rn4tWVwqgr7MbajQrc4WHinQz5QFK/view?usp=drive_link" frameborder="0" allowfullscreen></iframe>
-        <a href="https://lnkd.in/gi2f9FRJ" target="_blank" class="btn">Watch on LinkedIn</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Quarterly Reports Section -->
-  <section id="reports">
-    <div class="container">
-      <h2>Quarterly Reports</h2>
-      <p>Stay updated with the latest quarterly insights into actuarial trends, pricing strategies, and industry performance.</p>
-      <ul class="reports-list">
-        <li>
-          <h3>Q3 2024 Report: Personal Auto & Property Insights</h3>
-          <p>A detailed analysis of combined ratios, claims trends, and profitability for Q3 2024.</p>
-          <a href="q3-2024-report.html" class="btn">Read the Full Report</a>
-        </li>
-        <li>
-          <h3>Q2 2024 Report: Definity vs. Intact Performance</h3>
-          <p>Comparison of performance metrics for key personal insurance segments.</p>
-          <a href="q2-2024-report.html" class="btn">Read the Full Report</a>
-        </li>
-        <li>
-          <h3>Q1 2024 Report: Impact of Inflation on Pricing</h3>
-          <p>Exploring how inflation trends influence rate indications and profitability.</p>
-          <a href="q1-2024-report.html" class="btn">Read the Full Report</a>
-        </li>
-      </ul>
-    </div>
-  </section>
-
-  <!-- Call to Action -->
-  <section id="cta">
-    <div class="container">
-      <h2>Stay Updated</h2>
-      <p>Don’t miss out on the latest insights! Subscribe to receive updates on new presentations and articles.</p>
-      <a href="contact.html" class="btn">Contact Me</a>
-    </div>
-  </section>
-
-  <!-- Footer Section -->
-  <footer>
-    <div class="container">
-      <p>&copy; 2024 Actuarial Angles. All rights reserved.</p>
+    <section id="rate-indication">
+      <h2>Rate Indication</h2>
       <p>
-        Follow me on: 
-        <a href="https://www.linkedin.com" target="_blank">LinkedIn</a> |
-        <a href="https://www.github.com" target="_blank">GitHub</a>
+        Learn about the rate indication process, its outcomes, and how insurers analyze losses, expenses, and profit margins. 
+        <a href="https://example.com/rate-indication" target="_blank">Watch the presentation here</a>.
       </p>
-    </div>
-  </footer>
-</body>
+    </section>
 
+    <section id="quarterly-reports">
+      <h2>Quarterly Reports</h2>
+      <p>
+        Stay updated with quarterly insights into actuarial trends, pricing strategies, and industry performance.
+        <ul>
+          <li><a href="q3-2024-report.html">Q3 2024 Report: Personal Auto & Property Insights</a></li>
+          <li><a href="q2-2024-report.html">Q2 2024 Report: Definity vs. Intact Performance</a></li>
+          <li><a href="q1-2024-report.html">Q1 2024 Report: Impact of Inflation on Pricing</a></li>
+        </ul>
+      </p>
+    </section>
+
+    <section id="contact">
+      <h2>Contact</h2>
+      <p>For inquiries or collaborations, feel free to <a href="contact.html">contact me</a>.</p>
+    </section>
+  </div>
+
+</body>
 </html>
