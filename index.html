@@ -21,9 +21,9 @@
       text-align: center;
     }
 
-    /* Default Side Menu (Desktop) */
+    /* Side Menu Styles */
     #side-menu {
-      width: 250px;
+      width: 270px; /* Adjusted width for better spacing */
       position: fixed;
       height: 100vh;
       background: #f4f4f4;
@@ -31,40 +31,22 @@
       overflow-y: auto;
       padding: 15px;
       transition: transform 0.3s ease; /* Smooth sliding effect */
+      transform: translateX(0); /* Default: visible */
+      z-index: 1000; /* Ensure it is above content */
     }
 
-    /* Desktop: Side Menu Visible */
-    @media (min-width: 768px) {
-      #side-menu {
-        transform: translateX(0); /* Always visible */
-      }
-      #side-menu-toggle {
-        display: none; /* Hide toggle button */
-      }
-    }
-
-    /* Hidden Side Menu (Mobile) */
-    @media (max-width: 768px) {
-      #side-menu {
-        transform: translateX(-100%); /* Initially hidden */
-      }
-
-      #side-menu.active {
-        transform: translateX(0); /* Show when toggled */
-      }
-
-      #side-menu-toggle {
-        display: block; /* Show toggle button */
-      }
+    /* Mobile: Side Menu Hidden */
+    #side-menu.hidden {
+      transform: translateX(-100%); /* Slide out of view */
     }
 
     /* Menu Toggle Button */
     #side-menu-toggle {
-      display: none;
-      background: #333;
-      color: white;
-      padding: 10px;
-      text-align: left;
+      display: block; /* Ensure it is always visible */
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      z-index: 1100;
     }
 
     #side-menu-toggle button {
@@ -78,11 +60,20 @@
 
     /* Main Content */
     #main-content {
-      margin-left: 250px; /* Space for side menu */
-      padding: 15px;
+      margin-left: 290px; /* Adjusted to match side menu's new width */
+      padding: 20px;
     }
 
+    /* Adjustments for Mobile */
     @media (max-width: 768px) {
+      #side-menu {
+        transform: translateX(-100%); /* Initially hidden */
+      }
+
+      #side-menu-toggle {
+        display: block; /* Ensure toggle button is visible */
+      }
+
       #main-content {
         margin-left: 0; /* Remove space for side menu */
       }
@@ -105,6 +96,15 @@
     #side-menu a:hover {
       background-color: #ddd;
     }
+
+    /* Prevent Section Titles from Being Hidden */
+    section {
+      margin-top: 20px;
+    }
+
+    section h2 {
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
@@ -115,7 +115,7 @@
     <p>Insights into Actuarial Science and Pricing Strategies</p>
   </header>
 
-  <!-- Menu Toggle Button (for mobile) -->
+  <!-- Menu Toggle Button -->
   <div id="side-menu-toggle">
     <button onclick="toggleMenu()">☰ Menu</button>
   </div>
@@ -123,11 +123,11 @@
   <!-- Side Menu -->
   <div id="side-menu">
     <h2>Navigate</h2>
-    <a href="#welcome">Welcome</a>
-    <a href="#rate-indication">Rate Indication</a>
-    <a href="#quarterly-reports">Quarterly Reports</a>
-    <a href="#upcoming-topics">Upcoming Topics</a>
-    <a href="#contact">Contact</a>
+    <a href="#welcome" onclick="toggleMenu()">Welcome</a>
+    <a href="#rate-indication" onclick="toggleMenu()">Rate Indication</a>
+    <a href="#quarterly-reports" onclick="toggleMenu()">Quarterly Reports</a>
+    <a href="#upcoming-topics" onclick="toggleMenu()">Upcoming Topics</a>
+    <a href="#contact" onclick="toggleMenu()">Contact</a>
   </div>
 
   <!-- Main Content -->
@@ -183,7 +183,7 @@
   <script>
     function toggleMenu() {
       const menu = document.getElementById('side-menu');
-      menu.classList.toggle('active'); // Show or hide the menu
+      menu.classList.toggle('hidden'); // Show or hide the menu
     }
   </script>
 
