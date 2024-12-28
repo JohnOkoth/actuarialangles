@@ -7,10 +7,11 @@
   <title>Actuarial Angles</title>
   <link rel="stylesheet" href="style.css"> <!-- External CSS -->
   <style>
-    /* Add some basic styles for the side menu */
+    /* General Styles */
     body {
       margin: 0;
       font-family: Arial, sans-serif;
+      scroll-behavior: smooth; /* Enable smooth scrolling */
     }
     header {
       background-color: #333;
@@ -18,57 +19,63 @@
       padding: 1rem;
       text-align: center;
     }
+
     /* Default Side Menu (Desktop) */
-#side-menu {
-  width: 250px;
-  position: fixed;
-  height: 100vh;
-  background: #f4f4f4;
-  border-right: 1px solid #ddd;
-  overflow-y: auto;
-  padding: 15px;
-  transition: transform 0.3s ease; /* Smooth sliding effect */
-  transform: translateX(0); /* Default: fully visible */
-}
+    #side-menu {
+      width: 250px;
+      position: fixed;
+      height: 100vh;
+      background: #f4f4f4;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+      padding: 15px;
+      transition: transform 0.3s ease; /* Smooth sliding effect */
+      transform: translateX(0); /* Default: fully visible */
+    }
 
-/* Hidden Side Menu (Mobile) */
-#side-menu.hidden {
-  transform: translateX(-100%); /* Slide out of view */
-}
+    /* Hidden Side Menu (Mobile) */
+    #side-menu.hidden {
+      transform: translateX(-100%); /* Slide out of view */
+    }
 
-/* Menu Toggle Button */
-#side-menu-toggle {
-  display: none;
-  background: #333;
-  color: white;
-  padding: 10px;
-  text-align: left;
-}
+    /* Menu Toggle Button */
+    #side-menu-toggle {
+      display: none;
+      background: #333;
+      color: white;
+      padding: 10px;
+      text-align: left;
+    }
 
-#side-menu-toggle button {
-  background: #333;
-  color: white;
-  border: none;
-  padding: 10px;
-  font-size: 18px;
-  cursor: pointer;
-}
+    #side-menu-toggle button {
+      background: #333;
+      color: white;
+      border: none;
+      padding: 10px;
+      font-size: 18px;
+      cursor: pointer;
+    }
 
-/* Adjustments for Smaller Screens */
-@media (max-width: 768px) {
-  #side-menu {
-    transform: translateX(-100%); /* Initially hidden */
-  }
+    /* Main Content */
+    #main-content {
+      margin-left: 250px; /* Space for side menu */
+      padding: 15px;
+    }
 
-  #side-menu-toggle {
-    display: block; /* Show toggle button */
-  }
+    /* Adjustments for Smaller Screens */
+    @media (max-width: 768px) {
+      #side-menu {
+        transform: translateX(-100%); /* Initially hidden */
+      }
 
-  #main-content {
-    margin-left: 0; /* Adjust content layout */
-  }
-}
+      #side-menu-toggle {
+        display: block; /* Show toggle button */
+      }
 
+      #main-content {
+        margin-left: 0; /* Remove space for side menu */
+      }
+    }
   </style>
 </head>
 <body>
@@ -79,10 +86,10 @@
     <p>Insights into Actuarial Science and Pricing Strategies</p>
   </header>
 
-<!-- Menu Toggle Button (for mobile) -->
-<div id="side-menu-toggle">
-  <button onclick="toggleMenu()">☰ Menu</button>
-</div>
+  <!-- Menu Toggle Button (for mobile) -->
+  <div id="side-menu-toggle">
+    <button onclick="toggleMenu()">☰ Menu</button>
+  </div>
 
   <!-- Side Menu -->
   <div id="side-menu">
@@ -111,48 +118,45 @@
 
     <section id="quarterly-reports">
       <h2>Quarterly Reports</h2>
-      <p>
-        Stay updated with quarterly insights into actuarial trends, pricing strategies, and industry performance.
-        <ul>
-          <li><a href="Q3_2024_Report.html">Q3 2024 Report: Addressing CAT Losses, Inflation, and Strategic Growth</a></li>
-          <li><a href="Q2_H1_2024_Report.html">Q2/H1 2024 Report: Key Insights for the Personal Insurance Industry</a></li>
-          <li><a href="Q1_2024_Report.html">Q1 2024 Report: Strong Recovery, Strategic Focus, & Market Confidence</a></li>
-        </ul>
-      </p>
+      <p>Stay updated with quarterly insights into actuarial trends, pricing strategies, and industry performance.</p>
+      <ul>
+        <li><a href="Q3_2024_Report.html">Q3 2024 Report: Addressing CAT Losses, Inflation, and Strategic Growth</a></li>
+        <li><a href="Q2_H1_2024_Report.html">Q2/H1 2024 Report: Key Insights for the Personal Insurance Industry</a></li>
+        <li><a href="Q1_2024_Report.html">Q1 2024 Report: Strong Recovery, Strategic Focus, & Market Confidence</a></li>
+      </ul>
     </section>
 
-<section id="upcoming-topics">
-  <h2>Upcoming Topics</h2>
-  <p>We’re excited to share new insights soon! Stay tuned for our upcoming presentations:</p>
-  <ul>
-    <li>
-      <h3>Enhancing the Pricing Model</h3>
-      <p>Discover how data-driven techniques and advanced modeling approaches are transforming pricing strategies in the insurance industry. This upcoming presentation will explore the integration of customer insights, machine learning, and traditional methods to build hybrid models. Key topics include leveraging Usage-Based Insurance (UBI) data, optimizing prices for profitability and competitiveness, and incorporating external trends to drive optimal pricing performance.</p>
-      <span style="color: #555;"><strong>Status:</strong> Presentation Coming Soon</span>
-    </li>
-    <li>
-      <h3>CAT Modeling</h3>
-      <p>Learn how catastrophe modeling helps insurers assess and mitigate risks associated with natural disasters, ensuring better preparedness and financial stability.</p>
-      <span style="color: #555;"><strong>Status:</strong> Presentatioin Coming Soon</span>
-    </li>
-  </ul>
-  <p>Check back soon for updates or <a href="mailto:johnnieyke@icloud.com" class="btn">Contact Me at johnnieyke@icloud.com</a> for more information.</p>
-</section>
-
+    <section id="upcoming-topics">
+      <h2>Upcoming Topics</h2>
+      <p>We’re excited to share new insights soon! Stay tuned for our upcoming presentations:</p>
+      <ul>
+        <li>
+          <h3>Enhancing the Pricing Model</h3>
+          <p>Discover how data-driven techniques and advanced modeling approaches are transforming pricing strategies in the insurance industry. This upcoming presentation will explore the integration of customer insights, machine learning, and traditional methods to build hybrid models. Key topics include leveraging Usage-Based Insurance (UBI) data, optimizing prices for profitability and competitiveness, and incorporating external trends to drive optimal pricing performance.</p>
+          <span style="color: #555;"><strong>Status:</strong> Presentation Coming Soon</span>
+        </li>
+        <li>
+          <h3>CAT Modeling</h3>
+          <p>Learn how catastrophe modeling helps insurers assess and mitigate risks associated with natural disasters, ensuring better preparedness and financial stability.</p>
+          <span style="color: #555;"><strong>Status:</strong> Presentation Coming Soon</span>
+        </li>
+      </ul>
+      <p>Check back soon for updates or <a href="mailto:johnnieyke@icloud.com" class="btn">Contact Me at johnnieyke@icloud.com</a> for more information.</p>
+    </section>
 
     <section id="contact">
       <h2>Contact Me</h2>
       <p>If you have any questions or would like to get in touch, feel free to email me:</p>
       <a href="mailto:johnnieyke@icloud.com">johnnieyke@icloud.com</a>
-</section>
-
+    </section>
   </div>
-<script>
-  function toggleMenu() {
-    const menu = document.getElementById('side-menu');
-    menu.classList.toggle('hidden'); // Add or remove 'hidden' class
-  }
-</script>
+
+  <script>
+    function toggleMenu() {
+      const menu = document.getElementById('side-menu');
+      menu.classList.toggle('hidden'); // Add or remove 'hidden' class
+    }
+  </script>
 
 </body>
 </html>
