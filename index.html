@@ -26,7 +26,9 @@
     #side-menu {
       width: 270px; /* Adjusted width for better spacing */
       position: fixed;
-      height: 100vh;
+      top: 60px; /* Push down the menu */
+      height: calc(100vh - 60px); /* Adjust height for the menu toggle button */
+      /*height: 100vh;*/
       background: #f4f4f4;
       border-right: 1px solid #ddd;
       overflow-y: auto;
@@ -62,6 +64,7 @@
     #main-content {
       margin-left: 290px; /* Adjusted to match side menu's width */
       padding: 20px;
+      padding-top: 60px; /* Added padding to prevent overlap */
     }
 
     /* Adjustments for Mobile */
