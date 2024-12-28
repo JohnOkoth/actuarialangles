@@ -10,24 +10,24 @@
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      display: flex;
     }
 
     /* Sidebar Styles */
     #side-menu {
       width: 250px;
       position: fixed;
-      height: 100vh;
+      top: 60px; /* Push down the menu */
+      height: calc(100vh - 60px); /* Adjust height for the menu toggle button */
       background: #f4f4f4;
       border-right: 1px solid #ddd;
       overflow-y: auto;
       padding: 15px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
     }
 
-    #side-menu h2 {
-      font-size: 18px;
-      color: #333;
-      margin-bottom: 10px;
+    #side-menu.open {
+      transform: translateX(0);
     }
 
     #side-menu a {
@@ -43,11 +43,40 @@
       background: #ddd;
     }
 
+    /* Menu Toggle Button */
+    #menu-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 1000;
+      border-radius: 3px;
+    }
+
+    #menu-toggle:hover {
+      background: #555;
+    }
+
     /* Main Content Styles */
     #main-content {
-      margin-left: 270px; /* Leave space for the sidebar */
+      margin-left: 270px;
       padding: 20px;
-      flex-grow: 1;
+      padding-top: 60px; /* Prevent overlap with the menu toggle */
+    }
+
+    @media screen and (max-width: 768px) {
+      #main-content {
+        margin-left: 0;
+      }
+
+      #side-menu {
+        width: 250px;
+        transform: translateX(-100%);
+      }
     }
 
     h1, h2, h3 {
@@ -70,13 +99,20 @@
     .btn:hover {
       background: #555;
     }
+
+    footer {
+      text-align: center;
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
 
+  <!-- Menu Toggle Button -->
+  <button id="menu-toggle">☰ Menu</button>
+
   <!-- Sidebar Navigation -->
   <div id="side-menu">
-    <h2>Sections</h2>
     <a href="#introduction">1. Introduction</a>
     <a href="#intact-performance">2. Intact Q1 2024 Personal Insurance Performance</a>
     <a href="#intact-auto-expense">3. Evaluation of Intact's Auto Expense</a>
@@ -103,6 +139,7 @@
       <p><a href="https://drive.google.com/file/d/1LBwr4E9mUHsvkoBFo-X6-xahg-LOK5OI/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
     </section>
 
+    <!-- Additional sections here -->
     <section id="intact-performance">
       <h2>2. Intact Q1 2024 Personal Insurance Performance</h2>
       <p>
@@ -175,10 +212,29 @@
       <p><a href="https://drive.google.com/file/d/1Uadw-lq0TBzByrYG-F5DROgYGFPPz4jd/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
     </section>
 
+
     <footer>
       <p><a href="index.html" class="btn">Back to Home</a></p>
     </footer>
   </div>
 
+  <!-- JavaScript for Toggle -->
+  <script>
+    const menuToggle = document.getElementById('menu-toggle');
+    const sideMenu = document.getElementById('side-menu');
+    const menuLinks = document.querySelectorAll('#side-menu a');
+
+    // Toggle the menu open and close
+    menuToggle.addEventListener('click', () => {
+      sideMenu.classList.toggle('open');
+    });
+
+    // Close the menu when a link is clicked
+    menuLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        sideMenu.classList.remove('open'); // Close the side menu
+      });
+    });
+  </script>
 </body>
 </html>
