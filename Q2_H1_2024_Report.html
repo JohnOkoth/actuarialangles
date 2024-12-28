@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,18 +12,24 @@
       font-family: Arial, sans-serif;
       line-height: 1.6;
       margin: 0;
-      display: flex;
     }
 
-    /* Side Menu Styles */
+    /* General Styles */
     #side-menu {
       width: 250px;
       position: fixed;
-      height: 100vh;
+      top: 60px; /* Add top margin to push down the menu */
+      height: calc(100vh - 60px); /* Adjust height to account for the menu button */
       background: #f4f4f4;
       border-right: 1px solid #ddd;
       overflow-y: auto;
       padding: 15px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    #side-menu.open {
+      transform: translateX(0);
     }
 
     #side-menu h2 {
@@ -44,11 +51,39 @@
       background: #ddd;
     }
 
-    /* Main Content Styles */
+    #menu-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 1000;
+      border-radius: 3px;
+    }
+
+    #menu-toggle:hover {
+      background: #555;
+    }
+
     #main-content {
-      margin-left: 270px; /* To make room for the side menu */
+      margin-left: 270px;
       padding: 20px;
-      flex-grow: 1;
+      padding-top: 60px; /* Added padding to prevent overlap */
+
+    }
+
+    @media screen and (max-width: 768px) {
+      #main-content {
+        margin-left: 0;
+      }
+
+      #side-menu {
+        width: 250px;
+        transform: translateX(-100%);
+      }
     }
 
     h1, h2, h3 {
@@ -58,16 +93,21 @@
     section {
       margin-bottom: 30px;
     }
+
+    footer {
+      text-align: center;
+      margin-top: 20px;
+    }
   </style>
 </head>
+
 <body>
+  <!-- Menu Toggle Button -->
+  <button id="menu-toggle">☰ Menu</button>
+
   <!-- Side Menu -->
   <div id="side-menu">
-    <h2>Sections</h2>
-    <a href="#industry-overview">Industry Overview</a>
-    <a href="#intact">Intact</a>
-    <a href="#definity">Definity</a>
-
+    
     <h2>Industry Overview</h2>
     <a href="#intro">Introduction</a>
     <a href="#trends">Key Trends in H1 2024</a>
@@ -97,18 +137,18 @@
       <h1>Q2/H1 2024 Report: Personal Insurance Insights</h1>
     </header>
 
+    <!-- Industry Overview Section -->
     <section id="industry-overview">
       <h2>Industry Overview</h2>
-
       <section id="intro">
         <h3>1. Introduction</h3>
-        <p>This presentation delves into the critical drivers shaping the personal insurance industry, focusing on insights from Q2 and H1 results in 2023 and 2024. Key themes include the growing   emphasis on catastrophe risk management, operational efficiency, and the increasing role of technology in driving resilience.
-       </p>
-         <p><a href="https://drive.google.com/file/d/1Xvs_gLYZnUkydibpWviiCFFiCJJ7q0pI/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
-
+        <p>This presentation delves into the critical drivers shaping the personal insurance industry, focusing on insights from Q2 and H1 results in 2023 and 2024. Key themes include the growing emphasis on catastrophe risk management, operational efficiency, and the increasing role of technology in driving resilience.</p>
+        <p><a href="https://drive.google.com/file/d/1Xvs_gLYZnUkydibpWviiCFFiCJJ7q0pI/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
       </section>
+    </section>
 
-      <section id="trends">
+    <!-- Add Other Sections Here -->
+     <section id="trends">
         <h3>2. Key Trends in H1 2024</h3>
         <p>In H1 2024, Definity and Intact achieved strong profitability with improved combined ratios and underwriting income. Fewer catastrophic events and robust premium growth further boosted industry resilience.
        </p>
@@ -255,5 +295,16 @@
       <p><a href="index.html" class="btn">Back to Home</a></p>
     </footer>
   </div>
+
+  <!-- JavaScript for Toggle -->
+  <script>
+    const menuToggle = document.getElementById('menu-toggle');
+    const sideMenu = document.getElementById('side-menu');
+
+    menuToggle.addEventListener('click', () => {
+      sideMenu.classList.toggle('open');
+    });
+  </script>
 </body>
+
 </html>
