@@ -298,12 +298,22 @@
 
   <!-- JavaScript for Toggle -->
   <script>
-    const menuToggle = document.getElementById('menu-toggle');
-    const sideMenu = document.getElementById('side-menu');
+  const menuToggle = document.getElementById('menu-toggle');
+  const sideMenu = document.getElementById('side-menu');
+  const menuLinks = document.querySelectorAll('#side-menu a');
 
-    menuToggle.addEventListener('click', () => {
-      sideMenu.classList.toggle('open');
+  // Toggle the menu open and close
+  menuToggle.addEventListener('click', () => {
+    sideMenu.classList.toggle('open');
+  });
+
+  // Close the menu when a link is clicked
+  menuLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      sideMenu.classList.remove('open'); // Close the side menu
     });
+  });
+
   </script>
 </body>
 
