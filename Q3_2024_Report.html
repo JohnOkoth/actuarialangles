@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Q3 2024 Report: Personal Auto & Property Insights">
   <title>Q3 2024 Report</title>
-  <link rel="stylesheet" href="style.css"> <!-- Link to your CSS file -->
+  <link rel="stylesheet" href="style.css">
   <style>
     body {
       font-family: Arial, sans-serif;
       line-height: 1.6;
       margin: 0;
-      padding: 20px;
+      padding: 0;
     }
     h1, h2, h3 {
       color: #333;
@@ -19,6 +19,7 @@
     .container {
       max-width: 800px;
       margin: auto;
+      padding: 20px;
     }
     .btn {
       display: inline-block;
@@ -31,34 +32,103 @@
     .btn:hover {
       background: #555;
     }
-  @media (max-width: 768px) {
-    img {
-      max-width: 100%; /* Ensure the image scales */
-      height: auto; /* Maintain aspect ratio */
-      display: block; /* Ensure it's visible */
-      margin: 0 auto; /* Center the image */
+    #side-menu {
+      width: 250px;
+      position: fixed;
+      top: 60px;
+      height: calc(100vh - 60px);
+      background: #f4f4f4;
+      border-right: 1px solid #ddd;
+      overflow-y: auto;
+      padding: 15px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
     }
-  }
-
+    #side-menu.open {
+      transform: translateX(0);
+    }
+ 
+     #side-menu h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 10px;
+    }
+    #side-menu a {
+      display: block; /* Stack menu items in a column */
+      text-decoration: none; /* Remove underline */
+      color: #333; /* Text color */
+      padding: 10px 15px; /* Spacing for readability */
+      border-bottom: 1px solid #ddd; /* Add separator */
+    }
+    #side-menu a:hover {
+      background-color: #ddd; /* Highlight on hover */
+    }
+    #menu-toggle {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 10px 15px;
+      cursor: pointer;
+      z-index: 1000;
+      border-radius: 3px;
+    }
+    #menu-toggle:hover {
+      background: #555;
+    }
+    #main-content {
+      margin-left: 270px;
+      padding: 20px;
+    }
+    @media (max-width: 768px) {
+      #main-content {
+        margin-left: 0;
+        padding: 10px;
+      }
+      #side-menu {
+        transform: translateX(-100%);
+      }
+      img {
+        max-width: 100%;
+        height: auto;
+        max-height: 300px; /* Limit the maximum height to prevent it from being too large */
+        display: block;
+        margin: 15px auto;
+      }
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>Q3 2024 Report: Personal Auto & Property Insights</h1>
-  </header>
-  <div class="container">
+  <button id="menu-toggle">☰ Menu</button>
+  <div id="side-menu">
+    <h2>Report: Personal Auto & Property Insights</h2>
+    <a href="#overview" onclick="toggleMenu()">Overview</a>
+    <a href="#industry-outlook" onclick="toggleMenu()">Industry Outlook</a>
+    <a href="#intact-q3-2024-performance" onclick="toggleMenu()">Intact Q3 2024 Performance</a>
+    <a href="#visualizing-key-metrics-and-trends" onclick="toggleMenu()">Visualizing Metrics</a>
+    <a href="#definity-q3-2024-performance" onclick="toggleMenu()">Definity Q3 2024 Performance</a>
+    <a href="#visual-insights" onclick="toggleMenu()">Definity vs Intact</a>
+  </div>
 
-    <section>
-      <h2>Overview: Balancing Challenges and Opportunities</h2>
+   <div id="main-content">
+
+    <header>
+      <h1>Q3 2024 Report: Personal Auto & Property Insights</h1>
+    </header>
+  
+    <section id="overview">
+      <h2>Overview:Balancing Challenges and Opprtunities</h2>
       <p>The industry faces rising catastrophe (CAT) losses, inflation, and regulatory pressures. However, insurers like Definity and Intact demonstrate resilience through premium growth and operational efficiency.</p>
-      <p>
-       
-          <img src="images/SeesawPowePoint.png" alt="PowerPoint Presentation" 
-               style="max-width: 100%; height: auto; margin-top: 15px; display: block; margin-left: auto; margin-right: auto;">
-
-     <a href="https://drive.google.com/file/d/1GJoOKPpHPskqk4cNxVLMlQM-SlLHIwCQ/view?usp=sharing" target="_blank" class="btn">Watch the Video</a>
-      </p>
+      <img src="images/SeesawPowePoint.png" alt="PowerPoint Presentation"
+           style="max-width: 100%; max-height: 300px; height: auto; display: block; margin: 15px auto;">
+      <a href="https://drive.google.com/file/d/1GJoOKPpHPskqk4cNxVLMlQM-SlLHIwCQ/view?usp=sharing" target="_blank" class="btn">Watch the Video</a>
     </section>
+    <!-- Other sections follow -->
+  
+    
+   <section id="industry-outlook">
 
     <section>
       <h2>Industry Outlook</h2>
@@ -68,7 +138,7 @@
       </p>
     </section>
 
-    <section>
+    <section id="intact-q3-2024-performance">
       <h2>Intact Q3 2024 Performance</h2>
       <p>Increased CAT losses and inflationary pressures impacted results. Analysis of claims ratios, combined ratios, and underwriting income reveals trends in Personal Auto and Personal Property.</p>
       <p>
@@ -76,7 +146,7 @@
       </p>
     </section>
 
-    <section>
+    <section id="visualizing-key-metrics-and-trends">
       <h3>Visualizing Q3 2024 Performance: Key Metrics and Trends</h3>
       <p>We present a summary of Intact Q3 2024 results using a radar chart visualization developed in Shiny. The radar chart highlights the performance of key metrics, such as claims ratios, CAT losses, and underwriting income, for both Personal Auto and Personal Property segments.</p>
       <p>
@@ -84,7 +154,7 @@
       </p>
     </section>
 
-    <section>
+    <section id="definity-q3-2024-performance">
       <h2>Definity Q3 2024 Performance</h2>
       <p>Definity showcased strong premium growth and operational improvements in Q3 2024. Personal auto performance benefited from better claims management and expense control, while personal property faced challenges from rising catastrophe losses due to severe weather events.</p>
       <p>
@@ -92,7 +162,7 @@
       </p>
     </section>
 
-    <section>
+    <section id="visual-insights">
       <h3>Visual Insights: Definity vs. Intact Q3 2024 Performance Trends</h3>
       <p>This video provides a summary of Definity’s Q3 2024 performance, visualized through a radar chart. The chart highlights key metric performance and includes a comparison with Intact's metrics to identify patterns across the industry.</p>
       <p>
@@ -105,5 +175,26 @@
     </footer>
 
   </div>
+
+<!-- JavaScript for Toggle -->
+  <script>
+  const menuToggle = document.getElementById('menu-toggle');
+  const sideMenu = document.getElementById('side-menu');
+  const menuLinks = document.querySelectorAll('#side-menu a');
+
+  // Toggle the menu open and close
+  menuToggle.addEventListener('click', () => {
+    sideMenu.classList.toggle('open');
+  });
+
+  // Close the menu when a link is clicked
+  menuLinks.forEach(link => {
+    link.addEventListener('click', () => {
+      sideMenu.classList.remove('open'); // Close the side menu
+    });
+  });
+
+  </script>
 </body>
+
 </html>
