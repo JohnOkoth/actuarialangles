@@ -13,14 +13,17 @@
       margin: 0;
       padding: 0;
     }
+
     h1, h2, h3 {
       color: #333;
     }
+
     .container {
       max-width: 800px;
       margin: auto;
       padding: 20px;
     }
+
     .btn {
       display: inline-block;
       background: #333;
@@ -29,15 +32,17 @@
       text-decoration: none;
       border-radius: 5px;
     }
+
     .btn:hover {
       background: #555;
     }
+
     #side-menu {
       width: 250px;
       position: fixed;
-      top: 0px;
-      left:0;
-      height:100vh;
+      top: 0;
+      left: 0;
+      height: 100vh;
       background: #f4f4f4;
       border-right: 1px solid #ddd;
       padding: 10px;
@@ -45,25 +50,29 @@
       transform: translateX(-100%);
       transition: transform 0.3s ease-in-out;
     }
+
     #side-menu.open {
       transform: translateX(0);
     }
- 
-     #side-menu h2 {
+
+    #side-menu h2 {
       font-size: 18px;
       color: #333;
       margin-bottom: 10px;
     }
+
     #side-menu a {
-      display: block; /* Stack menu items in a column */
-      text-decoration: none; /* Remove underline */
-      color: #333; /* Text color */
-      padding: 10px 15px; /* Spacing for readability */
-      border-radius: 1px solid #ddd;; /* Add separator solid #ddd;*/
+      display: block;
+      text-decoration: none;
+      color: #333;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
     }
+
     #side-menu a:hover {
-      background-color: #ddd; /* Highlight on hover */
+      background-color: #ddd;
     }
+
     #menu-toggle {
       position: fixed;
       top: 10px;
@@ -75,25 +84,40 @@
       cursor: pointer;
       z-index: 1000;
     }
+
     #menu-toggle:hover {
       background: #555;
     }
+
     #main-content {
       margin-left: 270px;
       padding: 20px;
+      transition: margin-left 0.3s ease-in-out;
     }
+
+    /* Mobile View Adjustments */
     @media (max-width: 768px) {
-      #main-content {
-        margin-left: 270px;
-        padding: 10px;
-      }
       #side-menu {
         transform: translateX(-100%);
       }
+
+      #side-menu.open {
+        transform: translateX(0);
+      }
+
+      #menu-toggle {
+        left: 10px;
+      }
+
+      #main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
+
       img {
         max-width: 100%;
         height: auto;
-        max-height: 300px; /* Limit the maximum height to prevent it from being too large */
+        max-height: 300px;
         display: block;
         margin: 15px auto;
       }
@@ -101,7 +125,10 @@
   </style>
 </head>
 <body>
+  <!-- Menu Toggle Button -->
   <button id="menu-toggle">☰ Menu</button>
+
+  <!-- Side Menu -->
   <div id="side-menu">
     <h2>Report: Personal Auto & Property Insights</h2>
     <a href="#overview" onclick="toggleMenu()">Overview</a>
@@ -112,43 +139,39 @@
     <a href="#visual-insights" onclick="toggleMenu()">Definity vs Intact</a>
   </div>
 
-   <div id="main-content">
-
+  <div id="main-content">
     <header>
       <h1>Q3 2024 Report: Personal Auto & Property Insights</h1>
     </header>
-  
+
     <section id="overview">
-      <h2>Overview:Balancing Challenges and Opprtunities</h2>
+      <h2>Overview: Balancing Challenges and Opportunities</h2>
       <p>The industry faces rising catastrophe (CAT) losses, inflation, and regulatory pressures. However, insurers like Definity and Intact demonstrate resilience through premium growth and operational efficiency.</p>
-      <img src="images/SeesawPowePoint.png" alt="PowerPoint Presentation"
-           style="max-width: 100%; max-height: 300px; height: auto; display: block; margin: 15px auto;">
+      <img src="images/SeesawPowePoint.png" alt="PowerPoint Presentation" 
+           style="max-width: 100%; max-height: 300px; display: block; margin: 15px auto;">
       <a href="https://drive.google.com/file/d/1GJoOKPpHPskqk4cNxVLMlQM-SlLHIwCQ/view?usp=sharing" target="_blank" class="btn">Watch the Video</a>
     </section>
-    <!-- Other sections follow -->
-  
-    
-   <section id="industry-outlook">
 
-    <section>
+    <!-- Other sections -->
+    <section id="industry-outlook">
       <h2>Industry Outlook</h2>
       <p>Disciplined pricing, customer-focused innovations, and operational efficiency are crucial for navigating challenges and achieving sustainable growth.</p>
-      <p>
-        <a href="https://drive.google.com/file/d/1zjcK9Wc_n-jMVRpeK4OBYTXXAnl3iSdw/view?usp=sharing" target="_blank" class="btn">Watch the Video</a>
-      </p>
     </section>
 
-    <section id="intact-q3-2024-performance">
+ <section id="intact-q3-2024-performance">
       <h2>Intact Q3 2024 Performance</h2>
       <p>Increased CAT losses and inflationary pressures impacted results. Analysis of claims ratios, combined ratios, and underwriting income reveals trends in Personal Auto and Personal Property.</p>
       <p>
         <a href="https://drive.google.com/file/d/1nhQBiufHMI7DRliee7dWocd08Lkm6gGg/view?usp=sharing" target="_blank" class="btn">Watch the Video</a>
-      </p>
+    </p>
         <iframe 
-          src="https://johnokoth.shinyapps.io/shiny_app" 
-          style="width: 100%; height: 600px; border: none;"
+          src="https://actuarialangles.onrender.com" 
+          style="width: 100%; height: 600px; border: none; max-width: 100%;" 
           title="Interactive Insurance Metrics Dashboard">
-        </iframe>
+      </iframe>
+
+
+
     </section>
 
     <section id="visualizing-key-metrics-and-trends">
@@ -179,27 +202,24 @@
       <p><a href="index.html" class="btn">Back to Home</a></p>
     </footer>
 
+
   </div>
 
-<!-- JavaScript for Toggle -->
+  <!-- JavaScript for Toggle -->
   <script>
-  const menuToggle = document.getElementById('menu-toggle');
-  const sideMenu = document.getElementById('side-menu');
-  const menuLinks = document.querySelectorAll('#side-menu a');
+    const menuToggle = document.getElementById('menu-toggle');
+    const sideMenu = document.getElementById('side-menu');
+    const menuLinks = document.querySelectorAll('#side-menu a');
 
-  // Toggle the menu open and close
-  menuToggle.addEventListener('click', () => {
-    sideMenu.classList.toggle('open');
-  });
-
-  // Close the menu when a link is clicked
-  menuLinks.forEach(link => {
-    link.addEventListener('click', () => {
-      sideMenu.classList.remove('open'); // Close the side menu
+    menuToggle.addEventListener('click', () => {
+      sideMenu.classList.toggle('open');
     });
-  });
 
+    menuLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        sideMenu.classList.remove('open');
+      });
+    });
   </script>
 </body>
-
 </html>
