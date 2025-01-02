@@ -24,6 +24,21 @@ data_auto = pd.DataFrame({
     "Time": ["Q1 2023"] * 18 + ["Q1 2024"] * 18
 })
 
+data_property = pd.DataFrame({
+    "Metric": [
+        "Combined Ratio", "Claims Ratio", "Core Claim Ratio", "CAT Loss Ratio", "Expense Ratio", 
+        "PYD Ratio", "Gross Written Premium", "Underwriting Income", "ROE"
+    ] * 4,
+    "Value": [
+        84.5, 45.0, 50.2, 3.4, 34.3, 1.8, 760, 136, 13.5,  # Intact Q1 2023
+        91.1, 54.2, 50.7, 3.8, 36.9, -0.3, 225, 21.5, 9.3,  # Definity Q1 2023
+        82.5, 51.0, 46.4, 0, 36.1, -4.6, 828, 166, 14.0,  # Intact Q1 2024
+        91.0, 55.2, 51.3, 5.9, 35.8, -2.0, 236, 23.5, 12.7   # Definity Q1 2024
+    ],
+    "Company": ["Intact"] * 9 + ["Definity"] * 9 + ["Intact"] * 9 + ["Definity"] * 9,
+    "Time": ["Q1 2023"] * 18 + ["Q1 2024"] * 18
+})
+
 # Dash Layout
 app.layout = html.Div([
     html.H1("Insurance Metrics Dashboard", style={"textAlign": "center"}),
@@ -33,7 +48,8 @@ app.layout = html.Div([
         dcc.Dropdown(
             id="dataset",
             options=[
-                {"label": "Auto", "value": "Auto"}
+                {"label": "Auto", "value": "Auto"},
+                {"label": "Property", "value": "Property"}
             ],
             value="Auto"
         ),
@@ -68,7 +84,10 @@ app.layout = html.Div([
             dcc.Graph(id="bar-chart")
         ]),
         dcc.Tab(label="Trend Chart", children=[
-            dcc.Graph(id="trend-chart")
+            html.Div([
+                dcc.Graph(id="trend-chart-intact", style={"display": "inline-block", "width": "49%"}),
+                dcc.Graph(id="trend-chart-definity", style={"display": "inline-block", "width": "49%"})
+            ])
         ])
     ])
 ])
@@ -76,15 +95,17 @@ app.layout = html.Div([
 # Callbacks for Interactivity
 @app.callback(
     Output("bar-chart", "figure"),
+    Input("dataset", "value"),
     Input("metrics", "value"),
     Input("insurers", "value"),
     Input("years", "value")
 )
-def update_bar_chart(selected_metrics, selected_insurers, selected_years):
-    filtered_data = data_auto[
-        (data_auto["Metric"].isin(selected_metrics)) &
-        (data_auto["Company"].isin(selected_insurers)) &
-        (data_auto["Time"].isin(selected_years))
+def update_bar_chart(dataset, selected_metrics, selected_insurers, selected_years):
+    data = data_auto if dataset == "Auto" else data_property
+    filtered_data = data[
+        (data["Metric"].isin(selected_metrics)) &
+        (data["Company"].isin(selected_insurers)) &
+        (data["Time"].isin(selected_years))
     ]
     fig = px.bar(
         filtered_data,
@@ -93,31 +114,51 @@ def update_bar_chart(selected_metrics, selected_insurers, selected_years):
         color="Time",
         barmode="group",
         facet_col="Company",
-        title="Bar Chart of Selected Metrics"
+        title=f"Bar Chart of Selected Metrics ({dataset} Dataset)"
     )
     return fig
-
 
 @app.callback(
-    Output("trend-chart", "figure"),
+    [Output("trend-chart-intact", "figure"),
+     Output("trend-chart-definity", "figure")],
+    Input("dataset", "value"),
     Input("metrics", "value"),
-    Input("insurers", "value")
+    Input("years", "value")
 )
-def update_trend_chart(selected_metrics, selected_insurers):
-    filtered_data = data_auto[
-        (data_auto["Metric"].isin(selected_metrics)) &
-        (data_auto["Company"].isin(selected_insurers))
+def update_trend_charts(dataset, selected_metrics, selected_years):
+    data = data_auto if dataset == "Auto" else data_property
+
+    # Filter data for Intact
+    data_intact = data[
+        (data["Company"] == "Intact") &
+        (data["Metric"].isin(selected_metrics)) &
+        (data["Time"].isin(selected_years))
     ]
-    fig = px.line(
-        filtered_data,
+    fig_intact = px.line(
+        data_intact,
         x="Time",
         y="Value",
-        color="Company",
-        line_group="Metric",
+        color="Metric",
         markers=True,
-        title="Trend Chart of Selected Metrics"
+        title=f"Trend Chart - Intact ({dataset} Dataset)"
     )
-    return fig
+
+    # Filter data for Definity
+    data_definity = data[
+        (data["Company"] == "Definity") &
+        (data["Metric"].isin(selected_metrics)) &
+        (data["Time"].isin(selected_years))
+    ]
+    fig_definity = px.line(
+        data_definity,
+        x="Time",
+        y="Value",
+        color="Metric",
+        markers=True,
+        title=f"Trend Chart - Definity ({dataset} Dataset)"
+    )
+
+    return fig_intact, fig_definity
 
 # Run the Dash app
 if __name__ == "__main__":
