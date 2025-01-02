@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Insurance Metrics Dashboard</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: auto;
+    }
+    .controls {
+      margin-bottom: 20px;
+    }
+    .chart {
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Insurance Metrics Dashboard</h1>
+
+    <!-- Controls Section -->
+    <div class="controls">
+      <label for="dataset">Select Dataset:</label>
+      <select id="dataset">
+        <option value="Auto">Auto</option>
+        <option value="Property">Property</option>
+      </select>
+
+      <br><br>
+
+      <label for="metrics">Select Metrics:</label>
+      <select id="metrics" multiple>
+        <option value="Combined Ratio">Combined Ratio</option>
+        <option value="Claims Ratio">Claims Ratio</option>
+        <option value="Core Claim Ratio">Core Claim Ratio</option>
+        <option value="CAT Loss Ratio">CAT Loss Ratio</option>
+        <option value="Expense Ratio">Expense Ratio</option>
+        <option value="PYD Ratio">PYD Ratio</option>
+        <option value="Gross Written Premium">Gross Written Premium</option>
+        <option value="Underwriting Income">Underwriting Income</option>
+        <option value="ROE">ROE</option>
+      </select>
+
+      <br><br>
+
+      <label for="insurers">Select Insurers:</label>
+      <select id="insurers" multiple>
+        <option value="Intact">Intact</option>
+        <option value="Definity">Definity</option>
+      </select>
+
+      <br><br>
+
+      <label for="years">Select Years:</label>
+      <select id="years" multiple>
+        <option value="Q1 2023">Q1 2023</option>
+        <option value="Q1 2024">Q1 2024</option>
+      </select>
+
+      <br><br>
+      <button onclick="updateCharts()">Update Charts</button>
+    </div>
+
+    <!-- Bar Chart -->
+    <div id="barChart" class="chart"></div>
+
+    <!-- Trend Chart -->
+    <div id="trendChart" class="chart"></div>
+  </div>
+
+  <script>
+    // Data Definitions
+    const dataAuto = [
+      { Metric: "Combined Ratio", Company: "Intact", Time: "Q1 2023", Value: 97.1 },
+      { Metric: "Combined Ratio", Company: "Definity", Time: "Q1 2023", Value: 100.9 },
+      { Metric: "Combined Ratio", Company: "Intact", Time: "Q1 2024", Value: 98.6 },
+      { Metric: "Combined Ratio", Company: "Definity", Time: "Q1 2024", Value: 97.1 },
+      // Add remaining data points for Auto...
+    ];
+
+    const dataProperty = [
+      { Metric: "Combined Ratio", Company: "Intact", Time: "Q1 2023", Value: 84.5 },
+      { Metric: "Combined Ratio", Company: "Definity", Time: "Q1 2023", Value: 91.1 },
+      { Metric: "Combined Ratio", Company: "Intact", Time: "Q1 2024", Value: 82.5 },
+      { Metric: "Combined Ratio", Company: "Definity", Time: "Q1 2024", Value: 91.0 },
+      // Add remaining data points for Property...
+    ];
+
+    // Function to filter data based on user selections
+    function filterData(dataset, metrics, insurers, years) {
+      return dataset.filter(
+        (d) =>
+          metrics.includes(d.Metric) &&
+          insurers.includes(d.Company) &&
+          years.includes(d.Time)
+      );
+    }
+
+    // Function to create a bar chart
+    function createBarChart(data) {
+      const groupedData = {};
+      data.forEach((d) => {
+        if (!groupedData[d.Metric]) groupedData[d.Metric] = [];
+        groupedData[d.Metric].push(d);
+      });
+
+      const traces = Object.keys(groupedData).map((metric) => {
+        return {
+          x: groupedData[metric].map((d) => d.Value),
+          y: groupedData[metric].map((d) => d.Company + " " + d.Time),
+          type: "bar",
+          orientation: "h",
+          name: metric,
+        };
+      });
+
+      const layout = {
+        title: "Bar Chart: Insurance Metrics",
+        barmode: "stack",
+        xaxis: { title: "Value" },
+        yaxis: { title: "Metric" },
+      };
+
+      Plotly.newPlot("barChart", traces, layout);
+    }
+
+    // Function to create a trend chart
+    function createTrendChart(data) {
+      const traces = [];
+      const metrics = [...new Set(data.map((d) => d.Metric))];
+
+      metrics.forEach((metric) => {
+        const metricData = data.filter((d) => d.Metric === metric);
+        const companies = [...new Set(metricData.map((d) => d.Company))];
+
+        companies.forEach((company) => {
+          const companyData = metricData.filter((d) => d.Company === company);
+
+          traces.push({
+            x: companyData.map((d) => d.Time),
+            y: companyData.map((d) => d.Value),
+            type: "scatter",
+            mode: "lines+markers",
+            name: `${metric} (${company})`,
+          });
+        });
+      });
+
+      const layout = {
+        title: "Trend Chart: Year-over-Year Metrics",
+        xaxis: { title: "Time" },
+        yaxis: { title: "Value" },
+      };
+
+      Plotly.newPlot("trendChart", traces, layout);
+    }
+
+    // Update charts based on user selections
+    function updateCharts() {
+      const datasetType = document.getElementById("dataset").value;
+      const metrics = Array.from(
+        document.getElementById("metrics").selectedOptions
+      ).map((option) => option.value);
+      const insurers = Array.from(
+        document.getElementById("insurers").selectedOptions
+      ).map((option) => option.value);
+      const years = Array.from(
+        document.getElementById("years").selectedOptions
+      ).map((option) => option.value);
+
+      const dataset = datasetType === "Auto" ? dataAuto : dataProperty;
+      const filteredData = filterData(dataset, metrics, insurers, years);
+
+      createBarChart(filteredData);
+      createTrendChart(filteredData);
+    }
+  </script>
+</body>
+</html>
