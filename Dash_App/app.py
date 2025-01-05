@@ -8,8 +8,8 @@ import plotly.express as px
 #property_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Property_Metrics.xlsx"
 #auto_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Auto_Metrics.xlsx"
 
-property_file_path = "./data/Property_Metrics.xlsx"
-auto_file_path = "./data/Auto_Metrics.xlsx"
+property_file_path = "https://github.com/JohnOkoth/actuarialangles/data/Property_Metrics.xlsx"
+auto_file_path = "https://github.com/JohnOkoth/actuarialangles/data/Auto_Metrics.xlsx"
 
 
 # Load Data
