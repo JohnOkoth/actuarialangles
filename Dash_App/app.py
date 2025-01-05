@@ -111,6 +111,10 @@ def update_filters(data_type):
     ]
 )
 def render_tab_content(selected_tab, selected_metrics, selected_insurers, selected_time_period, data_type):
+    # Define custom sorting order for time periods
+    time_order = ["Q1 2023", "Q2 2023", "Q3 2023", "H1 2023", 
+                  "Q1 2024", "Q2 2024", "Q3 2024", "H1 2024"]
+    
     # Select data based on type
     data = data_property if data_type == "Property" else data_auto
 
@@ -129,7 +133,7 @@ def render_tab_content(selected_tab, selected_metrics, selected_insurers, select
                 color="Time",
                 barmode="group",
                 title=f"Bar Chart for {metric}",
-                category_orders={"Time": sorted(data["Time"].unique())}
+                category_orders={"Time": time_order}
             )
             bar_charts.append(dcc.Graph(figure=fig))
         return html.Div(bar_charts)
@@ -143,8 +147,9 @@ def render_tab_content(selected_tab, selected_metrics, selected_insurers, select
         ]
         for metric in selected_metrics:
             metric_data = filtered_data[filtered_data["Metric"] == metric]
-            # Sort time periods in the order of the selected time period
-            metric_data = metric_data.sort_values(by="Time", key=lambda x: x.map(lambda t: selected_time_period.index(t)))
+            # Sort time periods in the order of the custom sorting key
+            metric_data["Time"] = pd.Categorical(metric_data["Time"], categories=time_order, ordered=True)
+            metric_data = metric_data.sort_values(by="Time")
             fig = px.line(
                 metric_data,
                 x="Time",
@@ -155,6 +160,7 @@ def render_tab_content(selected_tab, selected_metrics, selected_insurers, select
             )
             trend_charts.append(dcc.Graph(figure=fig, style={"marginBottom": "20px"}))
         return html.Div(trend_charts)
+
 
 # Run the Dash app
 if __name__ == "__main__":
