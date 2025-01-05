@@ -90,8 +90,8 @@ def update_filters(data_type):
 
     # Default selections
     default_metrics = [metrics[0]["value"]] if metrics else []
-    default_insurers = [insurers[0]["value"]] if insurers else []
-    default_time = [time_periods[0]["value"]] if time_periods else []
+    default_insurers = default_insurers = ["Intact", "Definity"]
+    default_time =     default_time = ["Q1 2023", "Q1 2024", "Q2 2023", "Q2 2024", "Q3 2023", "Q3 2024"]
 
     return metrics, default_metrics, insurers, default_insurers, time_periods, default_time
 
