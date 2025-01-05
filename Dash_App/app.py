@@ -1,57 +1,55 @@
-import dash
+import dash 
 from dash import dcc, html
 from dash.dependencies import Input, Output
 import pandas as pd
 import plotly.express as px
 
+# File paths
+property_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Property_Metrics.xlsx"
+auto_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Auto_Metrics.xlsx"
+
+# Load Data
+data_property = pd.read_excel(property_file_path)
+data_auto = pd.read_excel(auto_file_path)
+
 # Initialize Dash app
 app = dash.Dash(__name__)
 server = app.server
-
-# Sample Data
-data_auto = pd.DataFrame({
-    "Metric": [
-        "Combined Ratio", "Claims Ratio", "Core Claim Ratio", "CAT Loss Ratio", "Expense Ratio", 
-        "PYD Ratio", "Gross Written Premium", "Underwriting Income", "ROE"
-    ] * 4,
-    "Value": [
-        97.1, 78.4, 71.1, 0, 26.0, -7.5, 1169, 41, 13.5,  # Intact Q1 2023
-        100.9, 72.4, 72.9, 0.1, 28.5, -0.6, 357.8, -3.2, 9.3,  # Definity Q1 2023
-        98.6, 75.4, 72.2, 0, 26.4, -3.2, 1300, 20, 14.0,  # Intact Q1 2024
-        97.1, 70.8, 71.5, 0.1, 26.3, -0.8, 413.5, 10.9, 12.7   # Definity Q1 2024
-    ],
-    "Company": ["Intact"] * 9 + ["Definity"] * 9 + ["Intact"] * 9 + ["Definity"] * 9,
-    "Time": ["Q1 2023"] * 18 + ["Q1 2024"] * 18
-})
 
 # Layout
 app.layout = html.Div([
     html.H1("Insurance Metrics Dashboard", style={"textAlign": "center"}),
 
     html.Div([
+        html.Label("Select Data Type:"),
+        dcc.RadioItems(
+            id="data-type",
+            options=[
+                {"label": "Property", "value": "Property"},
+                {"label": "Auto", "value": "Auto"}
+            ],
+            value="Auto",  # Default selection
+            inline=True
+        ),
         html.Label("Select Metrics:"),
         dcc.Checklist(
             id="metrics",
-            options=[{"label": metric, "value": metric} for metric in data_auto["Metric"].unique()],
-            value=["Combined Ratio", "Claims Ratio", "Core Claim Ratio"]
+            options=[],
+            value=[],
+            inline=True
         ),
         html.Label("Select Insurers:"),
         dcc.Checklist(
             id="insurers",
-            options=[
-                {"label": "Intact", "value": "Intact"},
-                {"label": "Definity", "value": "Definity"}
-            ],
-            value=["Intact", "Definity"]
+            options=[],
+            value=[],
+            inline=True
         ),
-        html.Label("Select Years:"),
+        html.Label("Select Time Period:"),
         dcc.Checklist(
-            id="years",
-            options=[
-                {"label": "Q1 2023", "value": "Q1 2023"},
-                {"label": "Q1 2024", "value": "Q1 2024"}
-            ],
-            value=["Q1 2023", "Q1 2024"]
+            id="time-period",
+            options=[],
+            value=[]
         )
     ], style={"padding": "10px", "border": "1px solid #ddd", "marginBottom": "20px"}),
 
@@ -66,35 +64,83 @@ app.layout = html.Div([
     html.Div(id="tabs-content")
 ])
 
-# Callbacks for Tabs
+# Callbacks to update filters and content
+@app.callback(
+    [
+        Output("metrics", "options"),
+        Output("metrics", "value"),
+        Output("insurers", "options"),
+        Output("insurers", "value"),
+        Output("time-period", "options"),
+        Output("time-period", "value")
+    ],
+    [Input("data-type", "value")]
+)
+def update_filters(data_type):
+    # Select data based on type
+    if data_type == "Property":
+        data = data_property
+    else:
+        data = data_auto
+
+    # Update filter options
+    metrics = [{"label": metric, "value": metric} for metric in data["Metric"].unique()]
+    insurers = [{"label": insurer, "value": insurer} for insurer in data["Company"].unique()]
+    time_periods = [{"label": time, "value": time} for time in sorted(data["Time"].unique())]
+
+    # Default selections
+    default_metrics = [metrics[0]["value"]] if metrics else []
+    default_insurers = [insurers[0]["value"]] if insurers else []
+    default_time = [time_periods[0]["value"]] if time_periods else []
+
+    return metrics, default_metrics, insurers, default_insurers, time_periods, default_time
+
+
 @app.callback(
     Output("tabs-content", "children"),
-    Input("tabs", "value"),
-    Input("metrics", "value"),
-    Input("insurers", "value"),
-    Input("years", "value")
-)
-def render_tab_content(selected_tab, selected_metrics, selected_insurers, selected_years):
-    filtered_data = data_auto[
-        (data_auto["Metric"].isin(selected_metrics)) &
-        (data_auto["Company"].isin(selected_insurers)) &
-        (data_auto["Time"].isin(selected_years))
+    [
+        Input("tabs", "value"),
+        Input("metrics", "value"),
+        Input("insurers", "value"),
+        Input("time-period", "value"),
+        Input("data-type", "value")
     ]
-    
+)
+def render_tab_content(selected_tab, selected_metrics, selected_insurers, selected_time_period, data_type):
+    # Select data based on type
+    data = data_property if data_type == "Property" else data_auto
+
     if selected_tab == "bar":
-        fig = px.bar(
-            filtered_data,
-            x="Value",
-            y="Metric",
-            color="Company",
-            barmode="group",
-            title="Bar Chart of Selected Metrics"
-        )
-        return dcc.Graph(figure=fig)
+        bar_charts = []
+        for metric in selected_metrics:
+            filtered_data = data[
+                (data["Metric"] == metric) &
+                (data["Company"].isin(selected_insurers)) &
+                (data["Time"].isin(selected_time_period))
+            ]
+            fig = px.bar(
+                filtered_data,
+                x="Company",
+                y="Value",
+                color="Time",
+                barmode="group",
+                title=f"Bar Chart for {metric}",
+                category_orders={"Time": sorted(data["Time"].unique())}
+            )
+            bar_charts.append(dcc.Graph(figure=fig))
+        return html.Div(bar_charts)
+
     elif selected_tab == "trend":
         trend_charts = []
+        filtered_data = data[
+            (data["Metric"].isin(selected_metrics)) &
+            (data["Company"].isin(selected_insurers)) &
+            (data["Time"].isin(selected_time_period))
+        ]
         for metric in selected_metrics:
             metric_data = filtered_data[filtered_data["Metric"] == metric]
+            # Sort time periods in the order of the selected time period
+            metric_data = metric_data.sort_values(by="Time", key=lambda x: x.map(lambda t: selected_time_period.index(t)))
             fig = px.line(
                 metric_data,
                 x="Time",
