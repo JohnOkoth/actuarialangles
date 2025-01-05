@@ -5,8 +5,12 @@ import pandas as pd
 import plotly.express as px
 
 # File paths
-property_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Property_Metrics.xlsx"
-auto_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Auto_Metrics.xlsx"
+#property_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Property_Metrics.xlsx"
+#auto_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Auto_Metrics.xlsx"
+
+property_file_path = "./data/Property_Metrics.xlsx"
+auto_file_path = "./data/Auto_Metrics.xlsx"
+
 
 # Load Data
 data_property = pd.read_excel(property_file_path)
