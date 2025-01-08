@@ -21,6 +21,7 @@ app = dash.Dash(__name__)
 server = app.server
 
 # Inject Google Analytics script
+# Inject Google Analytics script and Home Button
 app.index_string = """
 <!DOCTYPE html>
 <html lang="en">
@@ -34,8 +35,33 @@ app.index_string = """
             gtag('js', new Date());
             gtag('config', 'G-9S5SM84Q3T');
         </script>
+        <style>
+            /* Home Button Styles */
+            #home-button {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background-color: #007BFF; /* Blue background */
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 5px;
+                text-decoration: none;
+                cursor: pointer;
+                z-index: 1000; /* Ensure it stays on top */
+            }
+
+            #home-button:hover {
+                background-color: #0056b3; /* Darker blue on hover */
+            }
+        </style>
     </head>
     <body>
+        <!-- Home Button -->
+        <a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
+
         {%app_entry%}
         <footer>
             {%config%}
