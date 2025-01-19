@@ -82,7 +82,7 @@ app.index_string = """
 
 
 app.layout = html.Div([
-    html.H1("Ontario Auto Coverage Trend Analysis", style={'textAlign': 'center', 'width': '80%'}),
+    html.H1("Ontario Auto Coverage Trend Analysis", style={'textAlign': 'center', 'width': '67%'}),
 
     html.Div([
         # Sidebar for selection pane
