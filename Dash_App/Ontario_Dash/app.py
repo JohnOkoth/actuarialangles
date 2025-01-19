@@ -34,7 +34,7 @@ app.index_string = """
 <!DOCTYPE html>
 <html lang="en">
     <head>
-        <title>Insurance Metrics Dashboard</title>
+        <title>Ontario Auto Coverage Trend Analysis</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
         <script>
