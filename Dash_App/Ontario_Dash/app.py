@@ -3,9 +3,9 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # Load the data (replace with your actual file path)
-#data_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/ontario_combined_data_with_coverage.xlsx"
+data_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/ontario_combined_data_with_coverage.xlsx"
 
-data_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\ontario_combined_data_with_coverage.xlsx"
+#data_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\ontario_combined_data_with_coverage.xlsx"
 
 data = pd.read_excel(data_path)
 
