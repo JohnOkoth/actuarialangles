@@ -1,0 +1,83 @@
+[33mf92d225[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Add Ontario_Profitability folder, excluding large shapefile
+[33m4e58235[m[33m ([m[1;35mrefs/stash[m[33m)[m WIP on main: 06600da Ontario Profitabilit
+[33m08b5ead[m index on main: 06600da Ontario Profitabilit
+[33m06600da[m Ontario Profitabilit
+[33m1986bf4[m Ontario Profitability Folder
+[33m4f6cd6f[m updated the property damage data
+[33m9839b18[m update the Ontario Dashboard to website/added list
+[33m76795cf[m update the Ontario Dashboard to website
+[33m7f97c2c[m update the Ontario Auto title
+[33m3e23523[m update the Ontario Auto zoom to 67%
+[33m3608907[m new data path for ontario updated in python
+[33m17617a4[m new ontario region data
+[33m6b52583[m New Ontario_Dashboard in python file
+[33m504df65[m injected google analytics
+[33m8954fea[m injected google analytics
+[33maa24288[m injected google analytics
+[33ma8c23bb[m injected google analytics
+[33m6ca77cf[m injected dashboar with return home button
+[33md4110d2[m injected index.html with google analytics
+[33ma4f727a[m added added viewport and lang attribute
+[33m7aa8c23[m added google analytics to the code
+[33m5620621[m order half year data properly for the trend chart
+[33m2112957[m add added openpyxl to requirements.txt file
+[33m2cb0857[m add data path2
+[33m82b2ae1[m add data path2
+[33m573333c[m add data path2
+[33m96a67c0[m add data path
+[33mc329681[m add data path
+[33mf33b4a1[m fixed python path
+[33m10c18b8[m modified python chart
+[33md3e6d77[m Q3_2024_Report html modified with python chart
+[33mfbdc43d[m updated trend and bar charts for dataset selection to fit mobile
+[33m36b66ed[m test_index.html testing
+[33m4e66b6b[m updated trend and bar charts for dataset selection
+[33m285a4aa[m Added Dash_App file
+[33m423c8c0[m Added interactive charts and updated dashboard layout shiny_app file
+[33m9e1e967[m Add test_index htm file q3_test
+[33m0a163d3[m Add q3 2024 htm file with image shiny app added
+[33m3d1ad41[m Add q3 2024 htm file with image adjustments2
+[33m86b0e6e[m Add q3 2024 htm file with image adjustments
+[33ma6a301f[m Add SeesawPowePoint.png to images folder
+[33m2ec185a[m Q3_2024_Report file file new8
+[33mb747b9c[m Q3_2024_Report file file new7
+[33m656c596[m Q3_2024_Report file file new6
+[33m7303414[m Q3_2024_Report file file new5
+[33m48c877c[m Q3_2024_Report file file new4
+[33m79a49fa[m Q3_2024_Report file file new3
+[33m5a0142f[m Q3_2024_Report file file new2
+[33me001a2b[m index file file new7
+[33md3f9ee1[m index file file new6
+[33mcb966c9[m index file file new5
+[33m37ea6b0[m index file file new4
+[33me90d0e4[m index file file new3
+[33m4fcb2c5[m index file file new2
+[33m1cbfd51[m index file file new1
+[33m0709692[m Q1_2024_Report file new1
+[33ma8db839[m Q2_H1_2024_Report file new2
+[33m299d0ae[m Q2_H1_2024_Report file new
+[33m3159775[m side menu toggle new7
+[33m81d3a0e[m side menu toggle new6
+[33m577a2d4[m side menu toggle new5
+[33m3bd8342[m side menu toggle new4
+[33m7e9abe4[m side menu toggle new3
+[33m2bb9f47[m side menu toggle new2
+[33m68314d7[m side menu toggle new
+[33m5e78a65[m side menu toggle
+[33m6217b85[m tweaked index file
+[33ma750ec6[m Add Enhancing Pricing Model Topic
+[33m3b0269f[m Add upcoming topics
+[33m32caf4a[m Add Q1_2024_Report HTML file link
+[33mc92cb04[m Add Q1_2024_Report HTML file new
+[33mb8cfb75[m Add Q2_H1_2024_Report HTML file new2
+[33m3e70eb5[m Add Q2_H1_2024_Report HTML file new
+[33m9ad3b89[m Add Q1_H1_2024_Report HTML file link to main
+[33m5170c6b[m Add Q1_H1_2024_Report HTML file link
+[33mac90ab6[m Add Q3_2024_Report HTML file adjusted link
+[33m9c85c4c[m Add Q3_2024_Report HTML file link
+[33m4679224[m Add Q3 2024 report HTML
+[33me1b42e7[m Add contact section
+[33m21aeb1a[m Add video links to rate indication presentation
+[33m9956da8[m Add rate indication presentation page and link to index
+[33mf275ac1[m Added side menu navigation
+[33m5bd650c[m Add initial website files
