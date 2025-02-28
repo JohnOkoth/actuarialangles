@@ -191,11 +191,19 @@ app.layout = html.Div([
     ],
     [State('selected-region-dropdown', 'value')]
 )
-def update_map(selected_coverage, selected_accident_year, selected_loss_ratio, selected_claim_frequency, selected_combined_ratio, selected_exposure_level, selected_region, n_clicks, current_region):
-    if n_clicks > 0:
-        selected_region = None  # Reset the selected region to None
+def update_map(selected_coverage, selected_accident_year, selected_loss_ratio, selected_claim_frequency, 
+               selected_combined_ratio, selected_exposure_level, selected_region, n_clicks, current_region):
+    # Track if reset was triggered
+    ctx = dash.callback_context
+    reset_triggered = 'reset-zoom-button.n_clicks' in ctx.triggered_prop_ids and n_clicks > 0
 
-    if not any([selected_coverage, selected_accident_year, selected_loss_ratio, selected_claim_frequency, selected_combined_ratio, selected_exposure_level]):
+    # If reset is triggered, override selected_region to None
+    if reset_triggered:
+        selected_region = None
+
+    # Default map if no filters are applied
+    if not any([selected_coverage, selected_accident_year, selected_loss_ratio, selected_claim_frequency, 
+                selected_combined_ratio, selected_exposure_level]):
         return (
             px.scatter_mapbox(lat=[43.7], lon=[-79.4], zoom=4, mapbox_style="open-street-map"), 
             "No filters applied - showing default map (0 regions)", 
@@ -251,12 +259,13 @@ def update_map(selected_coverage, selected_accident_year, selected_loss_ratio, s
     region_options = [{'label': region, 'value': region} for region in triggered_regions]
 
     # Zoom logic
-    if selected_region and selected_region in triggered_regions:
+    if selected_region and selected_region in triggered_regions and not reset_triggered:
         region_gdf = filtered_gdf[filtered_gdf["Region_1"] == selected_region]
         bounds = region_gdf.total_bounds
         center_lat, center_lon = (bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2
         zoom_level = 8
     else:
+        # Default zoom when no region is selected or after reset
         bounds = filtered_gdf.total_bounds
         center_lat, center_lon = (bounds[1] + bounds[3]) / 2, (bounds[0] + bounds[2]) / 2
         zoom_level = max(6, min(12, 10 - max(bounds[2] - bounds[0], bounds[3] - bounds[1])))
@@ -272,7 +281,7 @@ def update_map(selected_coverage, selected_accident_year, selected_loss_ratio, s
     triggered_text_base = ", ".join(triggered_regions[:10]) + (f", and {region_count - 10} more..." if region_count > 10 else "")
     triggered_text = f"Filtered Regions ({region_count}): {triggered_text_base}"
 
-    return fig, triggered_text, "", region_options, selected_region
-
+    # Return None for dropdown value if reset was triggered, otherwise keep the selected value
+    return fig, triggered_text, "", region_options, None if reset_triggered else selected_region
 if __name__ == '__main__':
     app.run_server(debug=True)
