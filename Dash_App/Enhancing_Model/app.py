@@ -60,6 +60,138 @@ def train_xgb_model(_train_data_sev, _train_target_sev, nrounds, eta, max_depth,
 
 # Function definitions (calculate_severity, find_reference_levels, compute_shap_values_with_refs, create_trend_plot_with_exposure) remain unchanged
 
+
+
+# Functions (unchanged from your original code)
+def calculate_severity(row, shap_values, bias_severity):
+    active_features = row[row == 1].index
+    total_shap = shap_values[shap_values['Feature'].isin(active_features)]['MeanSHAP'].sum()
+    return np.exp(total_shap + np.log(bias_severity))
+
+def find_reference_levels(data, categorical_vars, exposure_col):
+    ref_levels = []
+    for var in categorical_vars:
+        exposure_by_level = data.groupby(var)[exposure_col].sum().reset_index()
+        ref_level = exposure_by_level.loc[exposure_by_level[exposure_col].idxmax(), var]
+        ref_levels.append({'variable': var, 'level': ref_level})
+    return ref_levels
+
+def compute_shap_values_with_refs(model, main_data, dummy_data, feature_names=None):
+    categorical_vars = main_data.select_dtypes(include=['category', 'object']).columns
+    ref_levels = find_reference_levels(main_data, categorical_vars, "Exposure")
+    ref_levels = [f"{x['variable']}_{x['level']}".replace(" ", "_") for x in ref_levels]
+    
+    if feature_names is None:
+        feature_names = [col for col in dummy_data.columns if col not in ["Exposure"] + list(categorical_vars)]
+    
+    explainer = shap.TreeExplainer(model)
+    shap_values = explainer.shap_values(dummy_data)
+    shap_df = pd.DataFrame(shap_values, columns=dummy_data.columns)
+    shap_df['BIAS'] = explainer.expected_value
+    
+    mean_shap_for_one_hot = []
+    for feature in dummy_data.columns:
+        active_rows = dummy_data[feature] == 1
+        if active_rows.any():
+            shap_values_when_one = shap_df.loc[active_rows.values, feature]
+            mean_shap_for_one_hot.append(shap_values_when_one.mean())
+        else:
+            mean_shap_for_one_hot.append(0)
+    
+    for ref_level in ref_levels:
+        mean_shap_for_one_hot.append(0)
+    
+    mean_shap_values = mean_shap_for_one_hot + [explainer.expected_value]
+    feature_names_with_bias = list(dummy_data.columns) + ref_levels + ["BIAS"]
+    mean_shap_df = pd.DataFrame({'Feature': feature_names_with_bias, 'MeanSHAP': mean_shap_values})
+    return mean_shap_df.sort_values(by=['Feature', 'MeanSHAP'], ascending=[True, False])
+
+def create_trend_plot_with_exposure(category_name, data, one_hot_features):
+    valid_features = [col for col in one_hot_features if col in data.columns]
+    category_data = data.melt(
+        id_vars=['Predicted_Severity_GLM', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev', 'Predicted_Severity_GLM2'],
+        value_vars=valid_features,
+        var_name='Variable',
+        value_name='Factor_Level'
+    )
+    category_data = category_data[category_data['Factor_Level'] == 1].groupby('Variable').mean().reset_index()
+    category_data = category_data[category_data['Variable'].str.contains(category_name)]
+    category_data = category_data.melt(
+        id_vars=['Variable'], 
+        value_vars=['Predicted_Severity_GLM', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev', 'Predicted_Severity_GLM2'],
+        var_name='Metric', 
+        value_name='Mean_Value'
+    )
+    category_exposure = data[valid_features + ['Exposure']].melt(
+        id_vars=['Exposure'],
+        value_vars=valid_features,
+        var_name='Variable',
+        value_name='Factor_Level'
+    )
+    category_exposure = category_exposure[category_exposure['Factor_Level'] == 1].groupby('Variable')['Exposure'].sum().reset_index()
+    category_exposure = category_exposure[category_exposure['Variable'].str.contains(category_name)]
+
+    max_severity_value = category_data['Mean_Value'].max()
+    max_exposure_value = category_exposure['Exposure'].max()
+
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=category_exposure['Variable'], 
+        y=category_exposure['Exposure'] / max_exposure_value * max_severity_value,
+        name='Exposure',
+        marker_color='lightgrey',
+        opacity=0.3,
+        yaxis='y2'
+    ))
+
+    colors = {'Predicted_Severity_GLM': '#1f77b4', 'Predicted_Severity_GLM2': 'red', 'Severity_SHAPXGB': '#ff7f0e', 'Severity_SHAPXGBAdj': '#2ca02c', 'Actual_Sev': 'purple'}
+    line_styles = {'Predicted_Severity_GLM': 'solid', 'Predicted_Severity_GLM2': 'solid', 'Severity_SHAPXGB': 'dash', 'Severity_SHAPXGBAdj': 'dot', 'Actual_Sev': 'dot'}
+
+    for metric in category_data['Metric'].unique():
+        metric_data = category_data[category_data['Metric'] == metric]
+        fig.add_trace(go.Scatter(
+            x=metric_data['Variable'], 
+            y=metric_data['Mean_Value'], 
+            mode='lines+markers', 
+            name=metric,
+            line=dict(color=colors[metric], dash=line_styles[metric], width=2),
+            marker=dict(size=6, color=colors[metric]),
+            hovertemplate=f"%{{x}}<br>%{{y:.2f}} {metric}"
+        ))
+
+    fig.update_layout(
+        title=f"Trends for {category_name}",
+        xaxis_title=category_name,
+        yaxis=dict(title="Mean Severity", side="left"),
+        yaxis2=dict(title="Exposure", side="right", overlaying="y", rangemode="tozero"),
+        legend=dict(x=1.05, y=1, xanchor="left", yanchor="top", font=dict(size=12)),
+        barmode="overlay",
+        hovermode="x unified",
+        plot_bgcolor='rgba(240, 240, 240, 0.5)'
+    )
+    return fig
+
+# Data Preprocessing
+# Data Preprocessing
+for cat_var in ["Age", "Vehicle_Use", "Car_Model"]:
+    total_exposure = augmented_data.groupby(cat_var)['Exposure'].sum().sort_values(ascending=False)
+    augmented_data[cat_var] = pd.Categorical(augmented_data[cat_var], categories=total_exposure.index, ordered=True)
+
+dummy_vars_sev = pd.get_dummies(augmented_data.drop(columns=["Group", "Severity", "Exposure", "Claim_Count"]), prefix_sep='_')
+main_data = dummy_vars_sev.drop(columns=[col for col in dummy_vars_sev.columns if any(cat in col for cat in ["Age_", "Vehicle_Use_", "Car_Model_"])])
+model_data = dummy_vars_sev.drop(columns=[col for col in dummy_vars_sev.columns if col in ["Age_F", "Vehicle_Use_DriveShort", "Car_Model_Mazda CX-9"]])
+target_sev = augmented_data['Severity']
+target_exposure = augmented_data['Exposure']
+
+train_data_sev, test_data_sev, train_target_sev, test_target_sev = train_test_split(model_data, target_sev, test_size=0.2, random_state=42)
+train_target_exposure = target_exposure.loc[train_data_sev.index]
+test_target_exposure = target_exposure.loc[test_data_sev.index]
+
+dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
+dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
+
+
+
 st.title("Model Tuning Dashboard")
 
 st.sidebar.header("Model Tuning Parameters")
@@ -155,7 +287,8 @@ if st.sidebar.button("Update & Optimize"):
         max_severity_value = max(average_metrics[['Predicted_Severity_GLM', 'Predicted_Severity_GLM2', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev']].max())
         max_exposure_value = average_metrics['Exposure'].max()
         trend_fig = go.Figure()
-        trend_fig.add_trace(go.Bar(x=average_metrics['Decile'], y=average_metrics['Exposure'] / max_exposure_value * max_severity_value, name='Exposure', marker_color='lightgrey', opacity=0.3, yaxis='y2'))
+        #trend_fig.add_trace(go.Bar(x=average_metrics['Decile'], y=average_metrics['Exposure'] / max_exposure_value * max_severity_value, name='Exposure', marker_color='lightgrey', opacity=0.3, yaxis='y2'))
+        trend_fig.add_trace(go.Bar(x=average_metrics['Decile'], y=average_metrics['Exposure'], name='Exposure', marker_color='lightgrey', opacity=0.3, yaxis='y2'))
         colors = {'Predicted_Severity_GLM': '#1f77b4', 'Predicted_Severity_GLM2': 'red', 'Severity_SHAPXGB': '#ff7f0e', 'Severity_SHAPXGBAdj': '#2ca02c', 'Actual_Sev': 'purple'}
         line_styles = {'Predicted_Severity_GLM': 'solid', 'Predicted_Severity_GLM2': 'solid', 'Severity_SHAPXGB': 'dash', 'Severity_SHAPXGBAdj': 'dot', 'Actual_Sev': 'dot'}
         for col in ['Predicted_Severity_GLM', 'Predicted_Severity_GLM2', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev']:
