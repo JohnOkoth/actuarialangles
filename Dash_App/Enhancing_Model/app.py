@@ -16,7 +16,7 @@ from statsmodels.api import GLM, families
 st.set_page_config(layout="centered")
 
 # Load data
-augmented_data = pd.read_csv("C:/Users/grace/OneDrive/Documents/simulated.csv")
+augmented_data = pd.read_csv("https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/simulated.csv")
 
 # Functions (unchanged from your original code)
 def calculate_severity(row, shap_values, bias_severity):
