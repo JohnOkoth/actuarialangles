@@ -31,6 +31,14 @@ def load_and_preprocess_data():
     test_target_exposure = target_exposure.loc[test_data_sev.index]
     return augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure
 
+@st.cache_resource
+def train_base_xgb_model(_train_data_sev, _train_target_sev):
+    params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
+    xgb_model2 = XGBRegressor(**params2, n_estimators=100)
+    xgb_model2.fit(_train_data_sev, _train_target_sev)
+    shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, _train_data_sev)
+    return xgb_model2, shap_values2
+
 # Load cached data
 augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure = load_and_preprocess_data()
 
