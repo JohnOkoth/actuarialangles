@@ -31,6 +31,14 @@ def load_and_preprocess_data():
     test_target_exposure = target_exposure.loc[test_data_sev.index]
     return augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure
 
+# Load cached data
+augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure = load_and_preprocess_data()
+
+# Create DMatrix objects outside the cache
+dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
+dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
+
+
 @st.cache_resource
 def train_base_xgb_model(_train_data_sev, _train_target_sev):
     params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
@@ -46,12 +54,6 @@ def train_glm_models(_train_data_sev, _train_target_sev):
     model_severity_glm2 = GammaRegressor().fit(_train_data_sev[glm_cols], _train_target_sev)
     return model_severity_glm, model_severity_glm2
 
-# Load cached data
-augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure = load_and_preprocess_data()
-
-# Create DMatrix objects outside the cache
-dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
-dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
 
 # Rest of your functions (unchanged)
 def calculate_severity(row, shap_values, bias_severity):
@@ -133,16 +135,17 @@ weight_car = st.sidebar.number_input("Weight: Car_Model", 0.0, 1.0, 0.15, step=0
 
 opt_method = st.sidebar.selectbox("Optimization Method", ["Single Parameter", "Bayesian", "Random Search"])
 
-if 'last_params' not in st.session_state:
-    st.session_state.last_params = None
-if 'results' not in st.session_state:
-    st.session_state.results = None
 
-current_params = (nrounds, eta, max_depth, gamma, colsample_bytree, min_child_weight, subsample, bias_factor, opt_method)
+#if 'last_params' not in st.session_state:
+ #   st.session_state.last_params = None
+#if 'results' not in st.session_state:
+ #   st.session_state.results = None
+
+#current_params = (nrounds, eta, max_depth, gamma, colsample_bytree, min_child_weight, subsample, bias_factor, opt_method)
 
 if st.sidebar.button("Update & Optimize"):
    
-    if st.session_state.last_params != current_params:
+    #if st.session_state.last_params != current_params:
         xgb_model2, shap_values2 = train_base_xgb_model(train_data_sev, train_target_sev)
         model_severity_glm, model_severity_glm2 = train_glm_models(train_data_sev, train_target_sev)
         
