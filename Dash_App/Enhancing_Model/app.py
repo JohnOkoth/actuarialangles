@@ -39,6 +39,13 @@ def train_base_xgb_model(_train_data_sev, _train_target_sev):
     shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, _train_data_sev)
     return xgb_model2, shap_values2
 
+@st.cache_resource
+def train_glm_models(_train_data_sev, _train_target_sev):
+    glm_cols = [col for col in _train_data_sev.columns if col not in ['Car_Model_Ford Explorer', 'Car_Model_Subaru Legacy', 'Car_Model_Hyundai Sonata', 'Car_Model_Toyota RAV4', 'Car_Model_Rivian R1T']]
+    model_severity_glm = GammaRegressor().fit(_train_data_sev, _train_target_sev)
+    model_severity_glm2 = GammaRegressor().fit(_train_data_sev[glm_cols], _train_target_sev)
+    return model_severity_glm, model_severity_glm2
+
 # Load cached data
 augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure = load_and_preprocess_data()
 
