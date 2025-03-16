@@ -14,6 +14,7 @@ from statsmodels.api import GLM, families
 
 st.set_page_config(layout="centered")
 
+# Cache only picklable objects
 @st.cache_data
 def load_and_preprocess_data():
     augmented_data = pd.read_csv("https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/simulated.csv")
@@ -28,41 +29,16 @@ def load_and_preprocess_data():
     train_data_sev, test_data_sev, train_target_sev, test_target_sev = train_test_split(model_data, target_sev, test_size=0.2, random_state=42)
     train_target_exposure = target_exposure.loc[train_data_sev.index]
     test_target_exposure = target_exposure.loc[test_data_sev.index]
-    dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
-    dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
-    return augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure, dtrain_sev, dtest_sev
+    return augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure
 
-augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure, dtrain_sev, dtest_sev = load_and_preprocess_data()
+# Load cached data
+augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_target_sev, test_target_sev, train_target_exposure, test_target_exposure = load_and_preprocess_data()
 
-@st.cache_resource
-def train_base_xgb_model(_train_data_sev, _train_target_sev):
-    params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
-    xgb_model2 = XGBRegressor(**params2, n_estimators=100)
-    xgb_model2.fit(_train_data_sev, _train_target_sev)
-    shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, _train_data_sev)
-    return xgb_model2, shap_values2
+# Create DMatrix objects outside the cache
+dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
+dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
 
-@st.cache_resource
-def train_glm_models(_train_data_sev, _train_target_sev):
-    glm_cols = [col for col in _train_data_sev.columns if col not in ['Car_Model_Ford Explorer', 'Car_Model_Subaru Legacy', 'Car_Model_Hyundai Sonata', 'Car_Model_Toyota RAV4', 'Car_Model_Rivian R1T']]
-    model_severity_glm = GammaRegressor().fit(_train_data_sev, _train_target_sev)
-    model_severity_glm2 = GammaRegressor().fit(_train_data_sev[glm_cols], _train_target_sev)
-    return model_severity_glm, model_severity_glm2
-
-@st.cache_resource
-def train_xgb_model(_train_data_sev, _train_target_sev, nrounds, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma):
-    params = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-              'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma}
-    xgb_model = XGBRegressor(**params, n_estimators=nrounds)
-    xgb_model.fit(_train_data_sev, _train_target_sev)
-    shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, _train_data_sev)
-    return xgb_model, shap_values
-
-# Function definitions (calculate_severity, find_reference_levels, compute_shap_values_with_refs, create_trend_plot_with_exposure) remain unchanged
-
-
-
-# Functions (unchanged from your original code)
+# Rest of your functions (unchanged)
 def calculate_severity(row, shap_values, bias_severity):
     active_features = row[row == 1].index
     total_shap = shap_values[shap_values['Feature'].isin(active_features)]['MeanSHAP'].sum()
@@ -80,15 +56,12 @@ def compute_shap_values_with_refs(model, main_data, dummy_data, feature_names=No
     categorical_vars = main_data.select_dtypes(include=['category', 'object']).columns
     ref_levels = find_reference_levels(main_data, categorical_vars, "Exposure")
     ref_levels = [f"{x['variable']}_{x['level']}".replace(" ", "_") for x in ref_levels]
-    
     if feature_names is None:
         feature_names = [col for col in dummy_data.columns if col not in ["Exposure"] + list(categorical_vars)]
-    
     explainer = shap.TreeExplainer(model)
     shap_values = explainer.shap_values(dummy_data)
     shap_df = pd.DataFrame(shap_values, columns=dummy_data.columns)
     shap_df['BIAS'] = explainer.expected_value
-    
     mean_shap_for_one_hot = []
     for feature in dummy_data.columns:
         active_rows = dummy_data[feature] == 1
@@ -97,10 +70,8 @@ def compute_shap_values_with_refs(model, main_data, dummy_data, feature_names=No
             mean_shap_for_one_hot.append(shap_values_when_one.mean())
         else:
             mean_shap_for_one_hot.append(0)
-    
     for ref_level in ref_levels:
         mean_shap_for_one_hot.append(0)
-    
     mean_shap_values = mean_shap_for_one_hot + [explainer.expected_value]
     feature_names_with_bias = list(dummy_data.columns) + ref_levels + ["BIAS"]
     mean_shap_df = pd.DataFrame({'Feature': feature_names_with_bias, 'MeanSHAP': mean_shap_values})
@@ -108,92 +79,27 @@ def compute_shap_values_with_refs(model, main_data, dummy_data, feature_names=No
 
 def create_trend_plot_with_exposure(category_name, data, one_hot_features):
     valid_features = [col for col in one_hot_features if col in data.columns]
-    category_data = data.melt(
-        id_vars=['Predicted_Severity_GLM', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev', 'Predicted_Severity_GLM2'],
-        value_vars=valid_features,
-        var_name='Variable',
-        value_name='Factor_Level'
-    )
+    category_data = data.melt(id_vars=['Predicted_Severity_GLM', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev', 'Predicted_Severity_GLM2'], value_vars=valid_features, var_name='Variable', value_name='Factor_Level')
     category_data = category_data[category_data['Factor_Level'] == 1].groupby('Variable').mean().reset_index()
     category_data = category_data[category_data['Variable'].str.contains(category_name)]
-    category_data = category_data.melt(
-        id_vars=['Variable'], 
-        value_vars=['Predicted_Severity_GLM', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev', 'Predicted_Severity_GLM2'],
-        var_name='Metric', 
-        value_name='Mean_Value'
-    )
-    category_exposure = data[valid_features + ['Exposure']].melt(
-        id_vars=['Exposure'],
-        value_vars=valid_features,
-        var_name='Variable',
-        value_name='Factor_Level'
-    )
+    category_data = category_data.melt(id_vars=['Variable'], value_vars=['Predicted_Severity_GLM', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev', 'Predicted_Severity_GLM2'], var_name='Metric', value_name='Mean_Value')
+    category_exposure = data[valid_features + ['Exposure']].melt(id_vars=['Exposure'], value_vars=valid_features, var_name='Variable', value_name='Factor_Level')
     category_exposure = category_exposure[category_exposure['Factor_Level'] == 1].groupby('Variable')['Exposure'].sum().reset_index()
     category_exposure = category_exposure[category_exposure['Variable'].str.contains(category_name)]
-
     max_severity_value = category_data['Mean_Value'].max()
     max_exposure_value = category_exposure['Exposure'].max()
-
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=category_exposure['Variable'], 
-        y=category_exposure['Exposure'] / max_exposure_value * max_severity_value,
-        name='Exposure',
-        marker_color='lightgrey',
-        opacity=0.3,
-        yaxis='y2'
-    ))
-
+    fig.add_trace(go.Bar(x=category_exposure['Variable'], y=category_exposure['Exposure'] / max_exposure_value * max_severity_value, name='Exposure', marker_color='lightgrey', opacity=0.3, yaxis='y2'))
     colors = {'Predicted_Severity_GLM': '#1f77b4', 'Predicted_Severity_GLM2': 'red', 'Severity_SHAPXGB': '#ff7f0e', 'Severity_SHAPXGBAdj': '#2ca02c', 'Actual_Sev': 'purple'}
     line_styles = {'Predicted_Severity_GLM': 'solid', 'Predicted_Severity_GLM2': 'solid', 'Severity_SHAPXGB': 'dash', 'Severity_SHAPXGBAdj': 'dot', 'Actual_Sev': 'dot'}
-
     for metric in category_data['Metric'].unique():
         metric_data = category_data[category_data['Metric'] == metric]
-        fig.add_trace(go.Scatter(
-            x=metric_data['Variable'], 
-            y=metric_data['Mean_Value'], 
-            mode='lines+markers', 
-            name=metric,
-            line=dict(color=colors[metric], dash=line_styles[metric], width=2),
-            marker=dict(size=6, color=colors[metric]),
-            hovertemplate=f"%{{x}}<br>%{{y:.2f}} {metric}"
-        ))
-
-    fig.update_layout(
-        title=f"Trends for {category_name}",
-        xaxis_title=category_name,
-        yaxis=dict(title="Mean Severity", side="left"),
-        yaxis2=dict(title="Exposure", side="right", overlaying="y", rangemode="tozero"),
-        legend=dict(x=1.05, y=1, xanchor="left", yanchor="top", font=dict(size=12)),
-        barmode="overlay",
-        hovermode="x unified",
-        plot_bgcolor='rgba(240, 240, 240, 0.5)'
-    )
+        fig.add_trace(go.Scatter(x=metric_data['Variable'], y=metric_data['Mean_Value'], mode='lines+markers', name=metric, line=dict(color=colors[metric], dash=line_styles[metric], width=2), marker=dict(size=6, color=colors[metric]), hovertemplate=f"%{{x}}<br>%{{y:.2f}} {metric}"))
+    fig.update_layout(title=f"Trends for {category_name}", xaxis_title=category_name, yaxis=dict(title="Mean Severity", side="left"), yaxis2=dict(title="Exposure", side="right", overlaying="y", rangemode="tozero"), legend=dict(x=1.05, y=1, xanchor="left", yanchor="top", font=dict(size=12)), barmode="overlay", hovermode="x unified", plot_bgcolor='rgba(240, 240, 240, 0.5)')
     return fig
 
-# Data Preprocessing
-# Data Preprocessing
-for cat_var in ["Age", "Vehicle_Use", "Car_Model"]:
-    total_exposure = augmented_data.groupby(cat_var)['Exposure'].sum().sort_values(ascending=False)
-    augmented_data[cat_var] = pd.Categorical(augmented_data[cat_var], categories=total_exposure.index, ordered=True)
-
-dummy_vars_sev = pd.get_dummies(augmented_data.drop(columns=["Group", "Severity", "Exposure", "Claim_Count"]), prefix_sep='_')
-main_data = dummy_vars_sev.drop(columns=[col for col in dummy_vars_sev.columns if any(cat in col for cat in ["Age_", "Vehicle_Use_", "Car_Model_"])])
-model_data = dummy_vars_sev.drop(columns=[col for col in dummy_vars_sev.columns if col in ["Age_F", "Vehicle_Use_DriveShort", "Car_Model_Mazda CX-9"]])
-target_sev = augmented_data['Severity']
-target_exposure = augmented_data['Exposure']
-
-train_data_sev, test_data_sev, train_target_sev, test_target_sev = train_test_split(model_data, target_sev, test_size=0.2, random_state=42)
-train_target_exposure = target_exposure.loc[train_data_sev.index]
-test_target_exposure = target_exposure.loc[test_data_sev.index]
-
-dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
-dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
-
-
-
+# Rest of your code (Streamlit app, model training, etc.) remains unchanged
 st.title("Model Tuning Dashboard")
-
 st.sidebar.header("Model Tuning Parameters")
 nrounds = st.sidebar.slider("Number of Rounds", 100, 150, 100, step=50)
 eta = st.sidebar.slider("Learning Rate", 0.01, 0.1, 0.1, step=0.01)
@@ -220,6 +126,7 @@ if 'results' not in st.session_state:
 current_params = (nrounds, eta, max_depth, gamma, colsample_bytree, min_child_weight, subsample, bias_factor, opt_method)
 
 if st.sidebar.button("Update & Optimize"):
+   
     if st.session_state.last_params != current_params:
         xgb_model2, shap_values2 = train_base_xgb_model(train_data_sev, train_target_sev)
         model_severity_glm, model_severity_glm2 = train_glm_models(train_data_sev, train_target_sev)
