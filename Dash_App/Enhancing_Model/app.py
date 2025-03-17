@@ -38,7 +38,6 @@ augmented_data, main_data, model_data, train_data_sev, test_data_sev, train_targ
 dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
 dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
 
-
 @st.cache_resource
 def train_base_xgb_model(_train_data_sev, _train_target_sev):
     params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
@@ -52,8 +51,16 @@ def train_glm_models(_train_data_sev, _train_target_sev):
     glm_cols = [col for col in _train_data_sev.columns if col not in ['Car_Model_Ford Explorer', 'Car_Model_Subaru Legacy', 'Car_Model_Hyundai Sonata', 'Car_Model_Toyota RAV4', 'Car_Model_Rivian R1T']]
     model_severity_glm = GammaRegressor().fit(_train_data_sev, _train_target_sev)
     model_severity_glm2 = GammaRegressor().fit(_train_data_sev[glm_cols], _train_target_sev)
-    return model_severity_glm, model_severity_glm2
+    return model_severity_glm, model_severity_glm2, glm_cols  # Return glm_cols to fix scope issue
 
+@st.cache_resource
+def train_xgb_model(_train_data_sev, _train_target_sev, nrounds, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma):
+    params = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
+              'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma}
+    xgb_model = XGBRegressor(**params, n_estimators=nrounds)
+    xgb_model.fit(_train_data_sev, _train_target_sev)
+    shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, _train_data_sev)
+    return xgb_model, shap_values
 
 # Rest of your functions (unchanged)
 def calculate_severity(row, shap_values, bias_severity):
@@ -115,7 +122,7 @@ def create_trend_plot_with_exposure(category_name, data, one_hot_features):
     fig.update_layout(title=f"Trends for {category_name}", xaxis_title=category_name, yaxis=dict(title="Mean Severity", side="left"), yaxis2=dict(title="Exposure", side="right", overlaying="y", rangemode="tozero"), legend=dict(x=1.05, y=1, xanchor="left", yanchor="top", font=dict(size=12)), barmode="overlay", hovermode="x unified", plot_bgcolor='rgba(240, 240, 240, 0.5)')
     return fig
 
-# Rest of your code (Streamlit app, model training, etc.) remains unchanged
+# Streamlit app logic
 st.title("Model Tuning Dashboard")
 st.sidebar.header("Model Tuning Parameters")
 nrounds = st.sidebar.slider("Number of Rounds", 100, 150, 100, step=50)
@@ -135,23 +142,21 @@ weight_car = st.sidebar.number_input("Weight: Car_Model", 0.0, 1.0, 0.15, step=0
 
 opt_method = st.sidebar.selectbox("Optimization Method", ["Single Parameter", "Bayesian", "Random Search"])
 
+if 'last_params' not in st.session_state:
+    st.session_state.last_params = None
+if 'results' not in st.session_state:
+    st.session_state.results = None
 
-#if 'last_params' not in st.session_state:
- #   st.session_state.last_params = None
-#if 'results' not in st.session_state:
- #   st.session_state.results = None
-
-#current_params = (nrounds, eta, max_depth, gamma, colsample_bytree, min_child_weight, subsample, bias_factor, opt_method)
+current_params = (nrounds, eta, max_depth, gamma, colsample_bytree, min_child_weight, subsample, bias_factor, opt_method)
 
 if st.sidebar.button("Update & Optimize"):
-   
-    #if st.session_state.last_params != current_params:
+    if st.session_state.last_params != current_params:
         xgb_model2, shap_values2 = train_base_xgb_model(train_data_sev, train_target_sev)
-        model_severity_glm, model_severity_glm2 = train_glm_models(train_data_sev, train_target_sev)
+        model_severity_glm, model_severity_glm2, glm_cols = train_glm_models(train_data_sev, train_target_sev)
         
         prepared_test_data = test_data_sev.copy()
         prepared_test_data['Predicted_Severity_GLM'] = model_severity_glm.predict(test_data_sev)
-        prepared_test_data['Predicted_Severity_GLM2'] = model_severity_glm2.predict(test_data_sev[[col for col in test_data_sev.columns if col in glm_cols]])
+        prepared_test_data['Predicted_Severity_GLM2'] = model_severity_glm2.predict(test_data_sev[glm_cols])  # Fixed scope issue
         prepared_test_data['Actual_Sev'] = test_target_sev
         prepared_test_data['Exposure'] = test_target_exposure
         prepared_test_data['Severity_SHAPXGB'] = prepared_test_data.apply(lambda row: calculate_severity(row, shap_values2, np.exp(shap_values2[shap_values2['Feature'] == 'BIAS']['MeanSHAP'].iloc[0])), axis=1)
@@ -212,7 +217,6 @@ if st.sidebar.button("Update & Optimize"):
         max_severity_value = max(average_metrics[['Predicted_Severity_GLM', 'Predicted_Severity_GLM2', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev']].max())
         max_exposure_value = average_metrics['Exposure'].max()
         trend_fig = go.Figure()
-        #trend_fig.add_trace(go.Bar(x=average_metrics['Decile'], y=average_metrics['Exposure'] / max_exposure_value * max_severity_value, name='Exposure', marker_color='lightgrey', opacity=0.3, yaxis='y2'))
         trend_fig.add_trace(go.Bar(x=average_metrics['Decile'], y=average_metrics['Exposure'], name='Exposure', marker_color='lightgrey', opacity=0.3, yaxis='y2'))
         colors = {'Predicted_Severity_GLM': '#1f77b4', 'Predicted_Severity_GLM2': 'red', 'Severity_SHAPXGB': '#ff7f0e', 'Severity_SHAPXGBAdj': '#2ca02c', 'Actual_Sev': 'purple'}
         line_styles = {'Predicted_Severity_GLM': 'solid', 'Predicted_Severity_GLM2': 'solid', 'Severity_SHAPXGB': 'dash', 'Severity_SHAPXGBAdj': 'dot', 'Actual_Sev': 'dot'}
