@@ -53,7 +53,7 @@ def train_glm_models(_train_data_sev, _train_target_sev):
     model_severity_glm2 = GammaRegressor().fit(_train_data_sev[glm_cols], _train_target_sev)
     return model_severity_glm, model_severity_glm2, glm_cols  # Return glm_cols to fix scope issue
 
-@st.cache_resource
+#@st.cache_resource
 def train_xgb_model(_train_data_sev, _train_target_sev, nrounds, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma):
     params = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
               'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma}
