@@ -8,3 +8,4 @@ scipy
 bayesian-optimization
 shap
 statsmodels
+gunicorn
