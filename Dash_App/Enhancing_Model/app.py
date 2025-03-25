@@ -3,7 +3,6 @@ import pandas as pd
 import numpy as np
 from xgboost import XGBRegressor, DMatrix
 import plotly.graph_objects as go
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import GammaRegressor
 from scipy import optimize
@@ -17,15 +16,63 @@ from bayes_opt.event import Events
 import statsmodels.api as sm
 from statsmodels.genmod.families import Gamma
 from statsmodels.genmod.families.links import log
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.metrics import mean_gamma_deviance
 
+# Set page config as the FIRST Streamlit command
+st.set_page_config(
+    page_title="Auto Insurance Predictive Model Tuning Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Set page config as the first command
-st.set_page_config(layout="centered")
+# Inject Google Analytics tracking code and custom "Back to Home" button with styles
+st.markdown("""
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+<script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-9S5SM84Q3T', { 'anonymize_ip': true });
+</script>
 
-# Load data
-augmented_data = pd.read_csv("https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/simulated.csv")
+<!-- Custom Styles for Home Button -->
+<style>
+    /* Home Button Styles */
+    #home-button {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        background-color: #007BFF; /* Blue background */
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        font-size: 14px;
+        font-weight: bold;
+        border-radius: 5px;
+        text-decoration: none;
+        cursor: pointer;
+        z-index: 1000; /* Ensure it stays on top */
+    }
+
+    #home-button:hover {
+        background-color: #0056b3; /* Darker blue on hover */
+    }
+</style>
+
+<!-- Home Button -->
+<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
+""", unsafe_allow_html=True)
+
+# Privacy notice
+st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
+
+# Load data with error handling
+try:
+    augmented_data = pd.read_csv("https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/simulated.csv")
+except Exception as e:
+    st.error(f"Failed to load data: {e}")
+    st.stop()
 
 # Functions
 def calculate_severity(row, shap_values, bias_severity):
@@ -36,7 +83,7 @@ def calculate_severity(row, shap_values, bias_severity):
 def find_reference_levels(data, categorical_vars, exposure_col):
     ref_levels = []
     for var in categorical_vars:
-        exposure_by_level = data.groupby(var)[exposure_col].sum().reset_index()
+        exposure_by_level = data.groupby(var, observed=False)[exposure_col].sum().reset_index()
         ref_level = exposure_by_level.loc[exposure_by_level[exposure_col].idxmax(), var]
         ref_levels.append({'variable': var, 'level': ref_level})
     return ref_levels
