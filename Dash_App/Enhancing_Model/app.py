@@ -65,7 +65,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Privacy notice
-st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
+#st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
 
 # Load data with error handling
 try:
