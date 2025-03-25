@@ -36,34 +36,6 @@ st.markdown("""
     gtag('config', 'G-9S5SM84Q3T', { 'anonymize_ip': true });
 </script>
 
-#<!-- Custom Styles for Home Button -->
-#<style>
-    #/* Home Button Styles */
-    #home-button {
-        #position: absolute;
-        #top: 10px;
-        #left: 10px;
-        #background-color: #007BFF; /* Blue background */
-        #color: white;
-        #border: none;
-        #padding: 10px 15px;
-        #font-size: 14px;
-        #font-weight: bold;
-        #border-radius: 5px;
-        #text-decoration: none;
-        #cursor: pointer;
-        #z-index: 1000; /* Ensure it stays on top */
-    #}
-
-    #home-button:hover {
-        #background-color: #0056b3; /* Darker blue on hover */
-    #}
-#</style>
-
-#<!-- Home Button -->
-#<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
-#""", unsafe_allow_html=True)
-
 # Privacy notice
 #st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
 
