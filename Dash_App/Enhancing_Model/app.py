@@ -181,8 +181,62 @@ shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, train_d
 
 bias_lower, bias_upper = compute_bias_bounds(train_target_sev, shap_values2, train_data_sev, model_severity_glm)
 
+
+
+# Inject Google Analytics script and Home Button
+app.index_string = """
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>Auto Insurance Predictive Model Tuning Dashboard</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-9S5SM84Q3T');
+        </script>
+        <style>
+            /* Home Button Styles */
+            #home-button {
+                position: absolute;
+                top: 10px;
+                left: 10px;
+                background-color: #007BFF; /* Blue background */
+                color: white;
+                border: none;
+                padding: 10px 15px;
+                font-size: 14px;
+                font-weight: bold;
+                border-radius: 5px;
+                text-decoration: none;
+                cursor: pointer;
+                z-index: 1000; /* Ensure it stays on top */
+            }
+
+            #home-button:hover {
+                background-color: #0056b3; /* Darker blue on hover */
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Home Button -->
+        <a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
+
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+"""
+
+
 # Streamlit App
-st.title("Model Tuning Dashboard")
+st.title("Auto Insurance Predictive Model Tuning Dashboard")
 
 # Sidebar for Inputs
 st.sidebar.header("Model Tuning Parameters")
