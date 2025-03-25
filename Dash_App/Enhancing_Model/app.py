@@ -200,7 +200,7 @@ st.markdown("""
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-9S5SM84Q3T');
+    gtag('config', 'G-9S5SM84Q3T'), { 'anonymize_ip': true });
 </script>
 
 <!-- Custom Styles for Home Button -->
@@ -230,6 +230,10 @@ st.markdown("""
 <!-- Home Button -->
 <a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
 """, unsafe_allow_html=True)
+
+# Privacy notice
+st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
+
 
 # Streamlit App
 st.title("Auto Insurance Predictive Model Tuning Dashboard")
