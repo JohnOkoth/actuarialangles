@@ -230,58 +230,6 @@ bias_lower, bias_upper = compute_bias_bounds(train_target_sev, shap_values2, tra
 
 
 
-# Inject Google Analytics script and Home Button
-# Set the page title and configuration
-st.set_page_config(
-    page_title="Auto Insurance Predictive Model Tuning Dashboard",
-    page_icon="📊",  # Optional: Add an emoji or favicon
-    layout="wide",   # Optional: Use wide layout for better dashboard appearance
-    initial_sidebar_state="expanded"
-)
-
-# Inject Google Analytics tracking code and custom "Back to Home" button with styles
-st.markdown("""
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
-<script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-9S5SM84Q3T'), { 'anonymize_ip': true });
-</script>
-
-<!-- Custom Styles for Home Button -->
-<style>
-    /* Home Button Styles */
-    #home-button {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        background-color: #007BFF; /* Blue background */
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        font-size: 14px;
-        font-weight: bold;
-        border-radius: 5px;
-        text-decoration: none;
-        cursor: pointer;
-        z-index: 1000; /* Ensure it stays on top */
-    }
-
-    #home-button:hover {
-        background-color: #0056b3; /* Darker blue on hover */
-    }
-</style>
-
-<!-- Home Button -->
-<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
-""", unsafe_allow_html=True)
-
-# Privacy notice
-st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
-
-
 # Streamlit App
 st.title("Auto Insurance Predictive Model Tuning Dashboard")
 
