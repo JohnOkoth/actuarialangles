@@ -1,4 +1,5 @@
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import numpy as np
 from xgboost import XGBRegressor, DMatrix
@@ -26,16 +27,20 @@ st.set_page_config(
 )
 
 # Inject Google Analytics tracking code
-st.markdown("""
+
+components.html("""
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
 <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-9S5SM84Q3T', { 'anonymize_ip': true, 'page_title': 'Auto Insurance Predictive Model Tuning Dashboard' });
+    gtag('config', 'G-9S5SM84Q3T', {
+        'anonymize_ip': true,
+        'page_title': 'Auto Insurance Predictive Model Tuning Dashboard'
+    });
 </script>
-""", unsafe_allow_html=True)
+""", height=0)
 
 # Privacy notice
 #st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
