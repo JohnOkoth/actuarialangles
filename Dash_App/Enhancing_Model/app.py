@@ -25,7 +25,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Inject Google Analytics tracking code and custom "Back to Home" button with styles
+# Inject Google Analytics tracking code
 st.markdown("""
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
@@ -35,9 +35,10 @@ st.markdown("""
     gtag('js', new Date());
     gtag('config', 'G-9S5SM84Q3T', { 'anonymize_ip': true });
 </script>
+""", unsafe_allow_html=True)
 
 # Privacy notice
-#st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
+st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
 
 # Load data with error handling
 try:
@@ -97,7 +98,6 @@ def compute_bias_bounds(train_target_sev, shap_values_base, train_data_sev, mode
     glm_preds = model_severity_glm.predict(train_data_sev)
     log_mean_glm = np.log(np.mean(glm_preds))
     
-    #central_bias = (log_mean_sev + shap_bias + log_mean_glm) / 3
     central_bias = (log_mean_sev + shap_bias) / 2
     lower_bound = min(np.log(train_target_sev))
     upper_bound = central_bias * 1.0
@@ -170,7 +170,7 @@ def create_trend_plot_with_exposure(category_name, data, one_hot_features):
 
 # Data Preprocessing
 for cat_var in ["Age", "Vehicle_Use", "Car_Model"]:
-    total_exposure = augmented_data.groupby(cat_var)['Exposure'].sum().sort_values(ascending=False)
+    total_exposure = augmented_data.groupby(cat_var, observed=False)['Exposure'].sum().sort_values(ascending=False)
     augmented_data[cat_var] = pd.Categorical(augmented_data[cat_var], categories=total_exposure.index, ordered=True)
 
 dummy_vars_sev = pd.get_dummies(augmented_data.drop(columns=["Group", "Severity", "Exposure", "Claim_Count"]), prefix_sep='_')
@@ -192,15 +192,12 @@ print(type(train_data_sev))
 gamma_model = GammaRegressor(alpha=0.0001, max_iter=5000, tol=1e-8)
 model_severity_glm = gamma_model.fit(train_data_sev, train_target_sev)
 
-
 params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
 xgb_model2 = XGBRegressor(**params2, n_estimators=100)
 xgb_model2.fit(train_data_sev, train_target_sev)
 shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, train_data_sev)
 
 bias_lower, bias_upper = compute_bias_bounds(train_target_sev, shap_values2, train_data_sev, model_severity_glm)
-
-
 
 # Streamlit App
 st.title("Auto Insurance Predictive Model Tuning Dashboard")
@@ -234,9 +231,6 @@ home_button_html = [
     '<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>',
 ]
 st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
-<!-- Home Button -->
-<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
-""", unsafe_allow_html=True)
 
 # Sidebar for Inputs
 st.sidebar.header("Model Tuning Parameters")
@@ -324,15 +318,8 @@ if st.sidebar.button("Update & Optimize"):
     elif opt_method == "Bayesian":
         def bayes_opt_func(bias, eta, max_depth):
             return optimize_weighted_error(bias, eta, int(round(max_depth)))
-        #optimizer = bayes_opt.BayesianOptimization(f=bayes_opt_func, 
-                                                   #pbounds={'bias': (bias_lower, bias_upper), 'eta': (0.01, 0.1), 'max_depth': (6, 10)}, 
-                                                   #random_state=42,
-                                                   #verbose=2
-        #)
-        # Define the optimization function with early stopping
-        def optimize_with_early_stopping(bias_lower, bias_upper, init_points=5, n_iter=20, error_threshold=0.0):
 
-            # Wrap the objective function to return negative error for maximization
+        def optimize_with_early_stopping(bias_lower, bias_upper, init_points=5, n_iter=20, error_threshold=0.0):
             def wrapped_bayes_opt_func(bias, eta, max_depth):
                 return -bayes_opt_func(bias, eta, max_depth)
 
@@ -340,58 +327,43 @@ if st.sidebar.button("Update & Optimize"):
                 f=wrapped_bayes_opt_func,
                 pbounds={'bias': (bias_lower, bias_upper), 'eta': (0.01, 0.1), 'max_depth': (6, 10)},
                 random_state=42,
-                verbose=2  # Print progress
-             )
+                verbose=2
+            )
 
-        # Warm start with a good initial guess
             optimizer.probe(
                 params={'bias': 5.5, 'eta': 0.05, 'max_depth': 8},
                 lazy=True,
-                )
-       
-        # Track the best error value
+            )
+
             best_error = np.inf
             best_params = None
-        
-        # Run optimization with early stopping
-            for _ in range(init_points + n_iter):
-                optimizer.maximize(init_points=0, n_iter=1)  # Perform one iteration at a time
-                current_error = -optimizer.max['target']  # Convert back to positive error
 
-            # Update the best error
+            for _ in range(init_points + n_iter):
+                optimizer.maximize(init_points=0, n_iter=1)
+                current_error = -optimizer.max['target']
                 if current_error < best_error:
                     best_error = current_error
                     best_params = optimizer.max['params']
-
-            # Check if the error is below the threshold
                 if best_error <= error_threshold:
                     print(f"Early stopping: Error reached {best_error} (<= {error_threshold})")
                     break
-        # Extract results
+
             optimized_params = best_params
             optimized_params['max_depth'] = int(round(optimized_params['max_depth']))
-            weighted_error = best_error # Convert back to positive error
-
+            weighted_error = best_error
             return optimized_params, weighted_error
 
-        # Run the optimization
         optimized_params, weighted_error = optimize_with_early_stopping(
             bias_lower=bias_lower,
             bias_upper=bias_upper,
             init_points=5,
             n_iter=20,
-            error_threshold=0.0  # Stop if error reaches zero
+            error_threshold=0.0
         )
 
         print("Optimized Parameters:", optimized_params)
         print("Weighted Error:", weighted_error)
 
-        
-
-        #optimizer.maximize(init_points=10, n_iter=20)
-        #optimized_params = optimizer.max['params']
-        #optimized_params['max_depth'] = int(round(optimized_params['max_depth']))
-        #weighted_error = optimizer.max['target']
     elif opt_method == "Random Search":
         n_samples = 10
         random_search = pd.DataFrame({
@@ -403,7 +375,6 @@ if st.sidebar.button("Update & Optimize"):
         best_idx = results.idxmin()
         optimized_params = random_search.loc[best_idx].to_dict()
         weighted_error = results[best_idx]
-
 
     elif opt_method == "Manual":
         optimized_params = {'bias': bias_factor, 'eta': eta, 'max_depth': max_depth}
@@ -470,8 +441,6 @@ if st.sidebar.button("Update & Optimize"):
                        f"Weighted Error Score: {weighted_error:.4f}\n"
                        f"Weights Used:\n  Overall: {weight_overall}\n  Age: {weight_age}\n  Vehicle_Use: {weight_vehicle}\n  Car_Model: {weight_car}")
     st.text(opt_result_text)
-    
-
 
     st.subheader("Variable Fits")
     age_fig = create_trend_plot_with_exposure("Age", prepared_test_data, test_data_sev.columns)
