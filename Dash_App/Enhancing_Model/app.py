@@ -265,15 +265,60 @@ if st.sidebar.button("Update & Optimize"):
     xgb_model2.fit(train_data_sev, train_target_sev)
     shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, train_data_sev)
 
+
     glm_cols = [col for col in train_data_sev.columns if col not in ['Car_Model_Ford Explorer', 'Car_Model_Subaru Legacy', 'Car_Model_Hyundai Sonata', 'Car_Model_Toyota RAV4', 'Car_Model_Rivian R1T']]
     model_severity_glm = GammaRegressor().fit(train_data_sev, train_target_sev)
     model_severity_glm2 = GammaRegressor().fit(train_data_sev[glm_cols], train_target_sev)
 
-    prepared_test_data = test_data_sev.copy()
-    prepared_test_data['Predicted_Severity_GLM'] = model_severity_glm.predict(test_data_sev)
-    prepared_test_data['Predicted_Severity_GLM2'] = model_severity_glm2.predict(test_data_sev[glm_cols])
+
+    # Prepare test data with all levels
+    #prepared_test_data = test_data_full.copy()
+
+    prepared_test_data = test_data_full.copy()
     prepared_test_data['Actual_Sev'] = test_target_sev
     prepared_test_data['Exposure'] = test_target_exposure
+    #prepared_test_data['Predicted_Severity_GLM'] = model_severity_glm.predict(test_data_sev)
+    #prepared_test_data['Predicted_Severity_GLM2'] = model_severity_glm2.predict(test_data_sev[glm_cols])
+    #prepared_test_data['Actual_Sev'] = test_target_sev
+    #prepared_test_data['Exposure'] = test_target_exposure
+
+    # Drop reference levels from test_data_full to match the training data format
+    ref_levels = ['Age_F', 'Vehicle_Use_DriveShort', 'Car_Model_Mazda CX-9']
+    test_data_for_pred = test_data_full.drop(columns=ref_levels, errors='ignore')
+
+    # Calculate total exposure for the overall test set
+    total_exposure_overall = prepared_test_data['Exposure'].sum()
+
+    # Calculate total exposure for each level of Age, Vehicle_Use, and Car_Model
+    categories = ['Age', 'Vehicle_Use', 'Car_Model']
+    exposure_by_category = {}
+    total_exposure_by_category = {}
+
+    for category in categories:
+        # Get the dummy columns for this category
+        category_cols = [col for col in prepared_test_data.columns if col.startswith(category + '_')]
+        # Melt the data to get exposure for each level
+        melted = prepared_test_data.melt(
+            id_vars=['Exposure'],
+            value_vars=category_cols,
+            var_name='Variable',
+            value_name='Factor_Level'
+         )
+        # Filter for rows where the level is active (Factor_Level == 1)
+        active_rows = melted[melted['Factor_Level'] == 1]
+        # Sum the exposure for each level
+        exposure_by_level = active_rows.groupby('Variable')['Exposure'].sum().to_dict()
+        exposure_by_category[category] = exposure_by_level
+        # Calculate the total exposure for this category
+        total_exposure = active_rows['Exposure'].sum()
+        total_exposure_by_category[category] = total_exposure
+
+
+   # Compute predictions for GLM models
+    prepared_test_data['Predicted_Severity_GLM'] = model_severity_glm.predict(test_data_for_pred)
+    prepared_test_data['Predicted_Severity_GLM2'] = model_severity_glm2.predict(test_data_for_pred[glm_cols])
+
+
     prepared_test_data['Severity_SHAPXGB'] = prepared_test_data.apply(lambda row: calculate_severity(row, shap_values2, np.exp(shap_values2[shap_values2['Feature'] == 'BIAS']['MeanSHAP'].iloc[0])), axis=1)
 
     def optimize_weighted_error(bias, eta=eta, max_depth=max_depth):
@@ -396,6 +441,7 @@ if st.sidebar.button("Update & Optimize"):
         'Actual_Sev': 'mean', 'Severity_SHAPXGBAdj': 'mean', 'Exposure': 'sum'
     }).reset_index()
 
+
     # Trend Plot
     max_severity_value = max(average_metrics[['Predicted_Severity_GLM', 'Predicted_Severity_GLM2', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev']].max())
     max_exposure_value = average_metrics['Exposure'].max()
@@ -434,6 +480,18 @@ if st.sidebar.button("Update & Optimize"):
     # Display Results
     st.subheader("Overall Fit")
     st.plotly_chart(trend_fig, use_container_width=True)
+    
+    # Format the exposure totals for display
+    exposure_text = f"\nTotal Exposure (Overall): {total_exposure_overall:.2f}\n"
+    # Add total exposure by category
+    for category in categories:
+        exposure_text += f"Total Exposure by {category}: {total_exposure_by_category[category]:.2f}\n"
+    # Add detailed exposure by level
+    for category in categories:
+        exposure_text += f"\nExposure by {category}:\n"
+        for level, exposure in exposure_by_category[category].items():
+            level_name = level.replace(f"{category}_", "")
+            exposure_text += f"  {level_name}: {exposure:.2f}\n"
 
     st.subheader("Optimization Results")
     opt_result_text = (f"Optimization Method: {opt_method}\n"
@@ -441,13 +499,16 @@ if st.sidebar.button("Update & Optimize"):
                        f"Optimized ETA: {optimized_params['eta']:.4f}\n"
                        f"Optimized Max Depth: {int(optimized_params['max_depth'])}\n"
                        f"Weighted Error Score: {weighted_error:.4f}\n"
-                       f"Weights Used:\n  Overall: {weight_overall}\n  Age: {weight_age}\n  Vehicle_Use: {weight_vehicle}\n  Car_Model: {weight_car}")
+                       f"Weights Used:\n  Overall: {weight_overall}\n  Age: {weight_age}\n  Vehicle_Use: {weight_vehicle}\n  Car_Model: {weight_car}"
+                       f"{exposure_text}")
     st.text(opt_result_text)
+    
+
 
     st.subheader("Variable Fits")
-    age_fig = create_trend_plot_with_exposure("Age", prepared_test_data, test_data_sev.columns)
-    vehicle_fig = create_trend_plot_with_exposure("Vehicle_Use", prepared_test_data, test_data_sev.columns)
-    car_fig = create_trend_plot_with_exposure("Car_Model", prepared_test_data, test_data_sev.columns)
+    age_fig = create_trend_plot_with_exposure("Age", prepared_test_data, test_data_full.columns)
+    vehicle_fig = create_trend_plot_with_exposure("Vehicle_Use", prepared_test_data, test_data_full.columns)
+    car_fig = create_trend_plot_with_exposure("Car_Model", prepared_test_data, test_data_full.columns)
     st.plotly_chart(age_fig, use_container_width=True)
     st.plotly_chart(vehicle_fig, use_container_width=True)
     st.plotly_chart(car_fig, use_container_width=True)
