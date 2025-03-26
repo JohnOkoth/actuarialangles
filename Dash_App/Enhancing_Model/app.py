@@ -21,7 +21,7 @@ from statsmodels.genmod.families.links import log
 st.set_page_config(
     page_title="Auto Insurance Predictive Model Tuning Dashboard",
     page_icon="📊",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded"
 )
 
@@ -33,12 +33,12 @@ st.markdown("""
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
     gtag('js', new Date());
-    gtag('config', 'G-9S5SM84Q3T', { 'anonymize_ip': true });
+    gtag('config', 'G-9S5SM84Q3T', { 'anonymize_ip': true, 'page_title': 'Auto Insurance Predictive Model Tuning Dashboard' });
 </script>
 """, unsafe_allow_html=True)
 
 # Privacy notice
-st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
+#st.markdown("**Privacy Notice**: This app uses Google Analytics to track user access for improving user experience. No personal data is collected.")
 
 # Load data with error handling
 try:
@@ -134,7 +134,8 @@ def create_trend_plot_with_exposure(category_name, data, one_hot_features):
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=category_exposure['Variable'], 
-        y=category_exposure['Exposure'] / max_exposure_value * max_severity_value,
+        #y=category_exposure['Exposure'] / max_exposure_value * max_severity_value,
+        y=category_exposure['Exposure'],
         name='Exposure',
         marker_color='lightgrey',
         opacity=0.3,
@@ -401,7 +402,8 @@ if st.sidebar.button("Update & Optimize"):
     trend_fig = go.Figure()
     trend_fig.add_trace(go.Bar(
         x=average_metrics['Decile'], 
-        y=average_metrics['Exposure'] / max_exposure_value * max_severity_value, 
+        #y=average_metrics['Exposure'] / max_exposure_value * max_severity_value,
+        y=average_metrics['Exposure'], 
         name='Exposure',
         marker_color='lightgrey', 
         opacity=0.3,
