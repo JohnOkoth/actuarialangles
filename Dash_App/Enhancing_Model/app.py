@@ -181,8 +181,23 @@ target_sev = augmented_data['Severity']
 target_exposure = augmented_data['Exposure']
 
 train_data_sev, test_data_sev, train_target_sev, test_target_sev = train_test_split(model_data, target_sev, test_size=0.2, random_state=42)
-train_target_exposure = target_exposure.loc[train_data_sev.index]
-test_target_exposure = target_exposure.loc[test_data_sev.index]
+
+# Create test set with all dummy variables (including reference levels)
+train_data_full, test_data_full, train_target_sev, test_target_sev = train_test_split(
+    dummy_vars_sev, target_sev, test_size=0.2, random_state=42
+)
+#train_target_exposure = target_exposure.loc[train_data_full.index]
+#test_target_exposure = target_exposure.loc[test_data_full.index]
+
+train_target_exposure = target_exposure.loc[train_data_full.index]
+test_target_exposure = target_exposure.loc[test_data_full.index]
+
+#train_target_exposure = target_exposure.loc[train_data_sev.index]
+#test_target_exposure = target_exposure.loc[test_data_sev.index]
+
+
+#train_target_exposure = target_exposure.loc[train_data_sev.index]
+#test_target_exposure = target_exposure.loc[test_data_sev.index]
 
 dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
 dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
