@@ -206,30 +206,34 @@ bias_lower, bias_upper = compute_bias_bounds(train_target_sev, shap_values2, tra
 st.title("Auto Insurance Predictive Model Tuning Dashboard")
 
 # Sidebar: Add "Back to Home" button at the top
-st.sidebar.markdown("""
-<!-- Custom Styles for Home Button -->
-<style>
-    /* Home Button Styles */
-    #home-button {
-        display: inline-block;
-        background-color: #007BFF; /* Blue background */
-        color: white;
-        border: none;
-        padding: 10px 15px;
-        font-size: 14px;
-        font-weight: bold;
-        border-radius: 5px;
-        text-decoration: none;
-        cursor: pointer;
-        margin-bottom: 10px; /* Add spacing below the button */
-        z-index: 1000; /* Ensure it stays on top of other sidebar elements */
-    }
-
-    #home-button:hover {
-        background-color: #0056b3; /* Darker blue on hover */
-    }
-</style>
-
+home_button_html = [
+    "<!-- Custom Styles for Home Button -->",
+    "<style>",
+    "    /* Home Button Styles */",
+    "    #home-button {",
+    "        display: inline-block;",
+    "        background-color: #007BFF; /* Blue background */",
+    "        color: white;",
+    "        border: none;",
+    "        padding: 10px 15px;",
+    "        font-size: 14px;",
+    "        font-weight: bold;",
+    "        border-radius: 5px;",
+    "        text-decoration: none;",
+    "        cursor: pointer;",
+    "        margin-bottom: 10px; /* Add spacing below the button */",
+    "        z-index: 1000; /* Ensure it stays on top of other sidebar elements */",
+    "    }",
+    "",
+    "    #home-button:hover {",
+    "        background-color: #0056b3; /* Darker blue on hover */",
+    "    }",
+    "</style>",
+    "",
+    "<!-- Home Button -->",
+    '<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>',
+]
+st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
 <!-- Home Button -->
 <a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
 """, unsafe_allow_html=True)
