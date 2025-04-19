@@ -1,62 +1,75 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="GA4 - Streamlit Button Tracking", layout="centered")
+import random
+import string
 
-# Inject GA tracking + button click handling
-ga_script = """
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+st.set_page_config(page_title="GA4 Manual Tracking via Fetch", layout="centered")
+
+# Generate a random Client ID for tracking
+def generate_cid():
+    return ''.join(random.choices(string.digits, k=10))
+
+cid = generate_cid()  # Generate once for the user session
+
+# Inject manual fetch-based GA4 tracking
+ga_manual_script = f"""
 <script>
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag('js', new Date());
+// Your Measurement ID
+const MEASUREMENT_ID = "G-9S5SM84Q3T";
+// Random Client ID
+const CLIENT_ID = "{cid}";
 
-// Wait until page fully loads
-window.addEventListener('load', function() {
-    // Config first
-    gtag('config', 'G-9S5SM84Q3T', { 'send_page_view': false });
+// Function to manually send event to GA4
+function sendGAEvent(eventName, additionalParams = {{}}, debug=false) {{
+    let params = {{
+        v: '2',                 // API Version
+        tid: MEASUREMENT_ID,    // Tracking ID
+        cid: CLIENT_ID,         // Client ID (random for now)
+        en: eventName,          // Event name
+        dl: window.location.href,  // Document location
+        dt: document.title         // Document title
+    }};
+    
+    // Merge additional parameters
+    for (const key in additionalParams) {{
+        params[key] = additionalParams[key];
+    }}
 
-    // Fire page_view manually
-    gtag('event', 'page_view', {
-        page_title: document.title,
-        page_path: window.location.pathname
-    });
+    fetch('https://www.google-analytics.com/g/collect', {{
+        method: 'POST',
+        body: new URLSearchParams(params)
+    }})
+    .then(response => {{
+        if (debug) {{
+            console.log('GA Event Sent:', eventName, params, 'Status:', response.status);
+        }}
+    }})
+    .catch(error => {{
+        console.error('Error sending GA event:', error);
+    }});
+}}
 
-    // Fire custom app_loaded event
-    gtag('event', 'app_loaded', {
-        app_name: 'Streamlit GA Test',
-        load_time: new Date().toISOString()
-    });
-
-    console.log('✅ Streamlit app: Manual page_view + app_loaded events sent.');
-});
-
-// Function to track button clicks
-function trackButtonClick(buttonName) {
-    gtag('event', 'button_click', {
-        button_name: buttonName
-    });
-    console.log('✅ GA4: button_click event sent for:', buttonName);
-}
+// Send page_view event immediately
+window.addEventListener('load', function() {{
+    sendGAEvent('page_view', {{}}, true);
+}});
 </script>
 """
 
-# Inject GA Script
-components.html(ga_script, height=0, width=0)
+# Inject Script
+components.html(ga_manual_script, height=0, width=0)
 
-# Main Streamlit App Content
-st.title("GA4 Test - Streamlit Button Click Tracking")
-st.write("This page sends 'page_view', 'app_loaded', and tracks button clicks!")
+# Main App
+st.title("GA4 Manual Tracking (Fetch Method)")
+st.write("This app sends 'page_view' and 'button_click' events manually using fetch.")
 
-# Create a button
+# Button to send custom click event
 if st.button("Get Quote"):
-    # Inject JavaScript to track click
     components.html("""
     <script>
-    trackButtonClick('Get Quote');
+    sendGAEvent('button_click', {button_name: 'Get Quote'}, true);
     </script>
     """, height=0, width=0)
+    st.success("Button clicked! 'button_click' event manually sent via fetch.")
 
-    # Also do normal Streamlit action
-    st.success("Button clicked! 🎯 Event should be visible in GA4 soon.")
