@@ -35,7 +35,9 @@ home_button_html = [
 st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
 
 # --- Load the data ---
-data_path = r"C:\Users\grace\OneDrive\Documents\data\ontario_combined_data_with_coverage.xlsx"
+#data_path = r"C:\Users\grace\OneDrive\Documents\data\ontario_combined_data_with_coverage.xlsx"
+data_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/ontario_combined_data_with_coverage.xlsx"
+
 data = pd.read_excel(data_path)
 
 # --- Data processing ---

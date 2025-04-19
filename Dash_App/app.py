@@ -52,8 +52,12 @@ st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
 def load_data(file_path):
     return pd.read_excel(file_path)
 
-property_file_path = r"C:\Users\grace\OneDrive\Documents\data\Property_Metrics.xlsx"
-auto_file_path = r"C:\Users\grace\OneDrive\Documents\data\Auto_Metrics.xlsx"
+#property_file_path = r"C:\Users\grace\OneDrive\Documents\data\Property_Metrics.xlsx"
+#auto_file_path = r"C:\Users\grace\OneDrive\Documents\data\Auto_Metrics.xlsx"
+
+property_file_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/Property_Metrics.xlsx"
+auto_file_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/Auto_Metrics.xlsx"
+
 
 data_property = load_data(property_file_path)
 data_auto = load_data(auto_file_path)
