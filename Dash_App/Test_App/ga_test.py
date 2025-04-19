@@ -1,49 +1,62 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="GA Test - App Loaded Event", layout="centered")
+st.set_page_config(page_title="GA4 - Streamlit Button Tracking", layout="centered")
 
-# Inject Google Analytics + Custom "app_loaded" Event
+# Inject GA tracking + button click handling
 ga_script = """
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
 
-  // Basic Configuration (disable automatic page_view)
-  gtag('config', 'G-9S5SM84Q3T', { 'send_page_view': false });
+// Wait until page fully loads
+window.addEventListener('load', function() {
+    // Config first
+    gtag('config', 'G-9S5SM84Q3T', { 'send_page_view': false });
 
-  // Send manual page_view
-  gtag('event', 'page_view', {
-    page_title: 'GA Test - App Loaded Event',
-    page_path: window.location.pathname
-  });
+    // Fire page_view manually
+    gtag('event', 'page_view', {
+        page_title: document.title,
+        page_path: window.location.pathname
+    });
 
-  // 🔥 Send custom app_loaded event
-  gtag('event', 'app_loaded', {
-    app_name: 'Actuarial Angles App',
-    load_time: new Date().toISOString()
-  });
+    // Fire custom app_loaded event
+    gtag('event', 'app_loaded', {
+        app_name: 'Streamlit GA Test',
+        load_time: new Date().toISOString()
+    });
 
-  // 🔵 Add a debug console log directly inside GA script
-  console.log('Page view and app_loaded events manually sent to GA.');
+    console.log('✅ Streamlit app: Manual page_view + app_loaded events sent.');
+});
+
+// Function to track button clicks
+function trackButtonClick(buttonName) {
+    gtag('event', 'button_click', {
+        button_name: buttonName
+    });
+    console.log('✅ GA4: button_click event sent for:', buttonName);
+}
 </script>
 """
 
-# Inject the script invisibly
+# Inject GA Script
 components.html(ga_script, height=0, width=0)
 
-# Streamlit page content
-st.title("GA Test with Custom Event")
-st.write("Custom 'app_loaded' event sent to Google Analytics. Check your Realtime report!")
+# Main Streamlit App Content
+st.title("GA4 Test - Streamlit Button Click Tracking")
+st.write("This page sends 'page_view', 'app_loaded', and tracks button clicks!")
 
-# Helpful Debug Tips
-st.write("""
-## Debugging Tips:
-1. Open Chrome Developer Tools → Network tab → Search for "collect" or "gtag".
-2. Look inside GA4 Realtime → Events → You should see "app_loaded".
-3. Disable ad blockers or test in Incognito mode.
-4. Make sure you are using the Measurement ID (`G-9S5SM84Q3T`).
-""")
+# Create a button
+if st.button("Get Quote"):
+    # Inject JavaScript to track click
+    components.html("""
+    <script>
+    trackButtonClick('Get Quote');
+    </script>
+    """, height=0, width=0)
+
+    # Also do normal Streamlit action
+    st.success("Button clicked! 🎯 Event should be visible in GA4 soon.")

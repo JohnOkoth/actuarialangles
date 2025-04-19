@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GA4 Manual Test - App Loaded Event</title>
+
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    // Send page_view event manually
+    gtag('config', 'G-9S5SM84Q3T', { 'send_page_view': true });
+
+    // Fire an extra manual page_view event (not needed if config sends one, but let's force)
+    gtag('event', 'page_view', {
+      page_title: 'GA4 Manual Test - App Loaded Event',
+      page_path: window.location.pathname
+    });
+
+    // Send custom app_loaded event
+    gtag('event', 'app_loaded', {
+      app_name: 'Pure HTML GA Test',
+      load_time: new Date().toISOString()
+    });
+
+    console.log('Manual page_view and app_loaded events sent.');
+  </script>
+</head>
+<body>
+  <h1>GA4 Manual Test: App Loaded Event</h1>
+  <p>If everything works, you will see "page_view" and "app_loaded" in GA4 Realtime Events.</p>
+</body>
+</html>
