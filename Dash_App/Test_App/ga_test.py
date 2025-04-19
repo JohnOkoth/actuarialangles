@@ -26,12 +26,16 @@ ga_script = """
     app_name: 'Actuarial Angles App',
     load_time: new Date().toISOString()
   });
+
+  // 🔵 Add a debug console log directly inside GA script
+  console.log('Page view and app_loaded events manually sent to GA.');
 </script>
 """
 
 # Inject the script invisibly
 components.html(ga_script, height=0, width=0)
 
+# Streamlit page content
 st.title("GA Test with Custom Event")
 st.write("Custom 'app_loaded' event sent to Google Analytics. Check your Realtime report!")
 
@@ -41,5 +45,5 @@ st.write("""
 1. Open Chrome Developer Tools → Network tab → Search for "collect" or "gtag".
 2. Look inside GA4 Realtime → Events → You should see "app_loaded".
 3. Disable ad blockers or test in Incognito mode.
-4. Make sure you are using the Measurement ID (`G-G-9S5SM84Q3T`).
+4. Make sure you are using the Measurement ID (`G-9S5SM84Q3T`).
 """)
