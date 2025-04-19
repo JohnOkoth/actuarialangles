@@ -1,220 +1,139 @@
-import dash 
-from dash import dcc, html
-from dash.dependencies import Input, Output
+import streamlit as st
 import pandas as pd
 import plotly.express as px
+import streamlit.components.v1 as components
 
-# File paths
-#property_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Property_Metrics.xlsx"
-#auto_file_path = r"C:\\Users\\grace\\OneDrive\\Documents\\data\\Auto_Metrics.xlsx"
-
-property_file_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/Property_Metrics.xlsx"
-auto_file_path = "https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/Auto_Metrics.xlsx"
-
-
-# Load Data
-data_property = pd.read_excel(property_file_path)
-data_auto = pd.read_excel(auto_file_path)
-
-# Initialize Dash app
-app = dash.Dash(__name__)
-server = app.server
-
-# Inject Google Analytics script
-# Inject Google Analytics script and Home Button
-app.index_string = """
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <title>Insurance Metrics Dashboard</title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-9S5SM84Q3T');
-        </script>
-        <style>
-            /* Home Button Styles */
-            #home-button {
-                position: absolute;
-                top: 10px;
-                left: 10px;
-                background-color: #007BFF; /* Blue background */
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                font-size: 14px;
-                font-weight: bold;
-                border-radius: 5px;
-                text-decoration: none;
-                cursor: pointer;
-                z-index: 1000; /* Ensure it stays on top */
-            }
-
-            #home-button:hover {
-                background-color: #0056b3; /* Darker blue on hover */
-            }
-        </style>
-    </head>
-    <body>
-        <!-- Home Button -->
-        <a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>
-
-        {%app_entry%}
-        <footer>
-            {%config%}
-            {%scripts%}
-            {%renderer%}
-        </footer>
-    </body>
-</html>
-"""
-
-
-# Layout
-app.layout = html.Div([
-    html.H1("Insurance Metrics Dashboard", style={"textAlign": "center"}),
-
-    html.Div([
-        html.Label("Select Data Type:"),
-        dcc.RadioItems(
-            id="data-type",
-            options=[
-                {"label": "Property", "value": "Property"},
-                {"label": "Auto", "value": "Auto"}
-            ],
-            value="Auto",  # Default selection
-            inline=True
-        ),
-        html.Label("Select Metrics:"),
-        dcc.Checklist(
-            id="metrics",
-            options=[],
-            value=[],
-            inline=True
-        ),
-        html.Label("Select Insurers:"),
-        dcc.Checklist(
-            id="insurers",
-            options=[],
-            value=[],
-            inline=True
-        ),
-        html.Label("Select Time Period:"),
-        dcc.Checklist(
-            id="time-period",
-            options=[],
-            value=[]
-        )
-    ], style={"padding": "10px", "border": "1px solid #ddd", "marginBottom": "20px"}),
-
-    dcc.Tabs(
-        id="tabs",
-        value="bar",
-        children=[
-            dcc.Tab(label="Bar Chart", value="bar", style={"textAlign": "center"}, selected_style={"backgroundColor": "#007BFF", "color": "white", "fontWeight": "bold"}),
-            dcc.Tab(label="Trend Charts by Metric", value="trend", style={"textAlign": "center"}, selected_style={"backgroundColor": "#007BFF", "color": "white", "fontWeight": "bold"})
-        ]
-    ),
-    html.Div(id="tabs-content")
-])
-
-# Callbacks to update filters and content
-@app.callback(
-    [
-        Output("metrics", "options"),
-        Output("metrics", "value"),
-        Output("insurers", "options"),
-        Output("insurers", "value"),
-        Output("time-period", "options"),
-        Output("time-period", "value")
-    ],
-    [Input("data-type", "value")]
+# --- Set Page Configuration ---
+st.set_page_config(
+    page_title="Insurance Metrics Dashboard 🚗🏠",
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
-def update_filters(data_type):
-    # Select data based on type
-    if data_type == "Property":
-        data = data_property
-    else:
-        data = data_auto
 
-    # Update filter options
-    metrics = [{"label": metric, "value": metric} for metric in data["Metric"].unique()]
-    insurers = [{"label": insurer, "value": insurer} for insurer in data["Company"].unique()]
-    time_periods = [{"label": time, "value": time} for time in sorted(data["Time"].unique())]
+# --- Google Analytics Injection ---
+components.html("""
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9S5SM84Q3T');
+</script>
+""", height=0)
 
-    # Default selections
-    default_metrics = [metrics[0]["value"]] if metrics else []
-    default_insurers = default_insurers = ["Intact", "Definity"]
-    default_time =     default_time = ["Q1 2023", "Q1 2024", "Q2 2023", "Q2 2024", "Q3 2023", "Q3 2024"]
+# --- Sidebar: Back to Home Button ---
+home_button_html = [
+    "<!-- Custom Styles for Home Button -->",
+    "<style>",
+    "    #home-button {",
+    "        display: inline-block;",
+    "        background-color: #007BFF;",
+    "        color: white;",
+    "        border: none;",
+    "        padding: 10px 15px;",
+    "        font-size: 14px;",
+    "        font-weight: bold;",
+    "        border-radius: 5px;",
+    "        text-decoration: none;",
+    "        cursor: pointer;",
+    "        margin-bottom: 10px;",
+    "    }",
+    "    #home-button:hover {",
+    "        background-color: #0056b3;",
+    "    }",
+    "</style>",
+    '<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>',
+]
+st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
 
-    return metrics, default_metrics, insurers, default_insurers, time_periods, default_time
+# --- Load Data with Caching ---
+@st.cache_data
+def load_data(file_path):
+    return pd.read_excel(file_path)
 
+property_file_path = r"C:\Users\grace\OneDrive\Documents\data\Property_Metrics.xlsx"
+auto_file_path = r"C:\Users\grace\OneDrive\Documents\data\Auto_Metrics.xlsx"
 
-@app.callback(
-    Output("tabs-content", "children"),
-    [
-        Input("tabs", "value"),
-        Input("metrics", "value"),
-        Input("insurers", "value"),
-        Input("time-period", "value"),
-        Input("data-type", "value")
-    ]
-)
-def render_tab_content(selected_tab, selected_metrics, selected_insurers, selected_time_period, data_type):
-    # Define custom sorting order for time periods
-    time_order = ["Q1 2023", "Q2 2023", "Q3 2023", "H1 2023", 
-                  "Q1 2024", "Q2 2024", "Q3 2024", "H1 2024"]
-    
-    # Select data based on type
-    data = data_property if data_type == "Property" else data_auto
+data_property = load_data(property_file_path)
+data_auto = load_data(auto_file_path)
 
-    if selected_tab == "bar":
-        bar_charts = []
-        for metric in selected_metrics:
-            filtered_data = data[
-                (data["Metric"] == metric) &
-                (data["Company"].isin(selected_insurers)) &
-                (data["Time"].isin(selected_time_period))
-            ]
-            fig = px.bar(
-                filtered_data,
-                x="Company",
-                y="Value",
-                color="Time",
-                barmode="group",
-                title=f"Bar Chart for {metric}",
-                category_orders={"Time": time_order}
-            )
-            bar_charts.append(dcc.Graph(figure=fig))
-        return html.Div(bar_charts)
+# --- Title ---
+st.title("Insurance Metrics Dashboard")
 
-    elif selected_tab == "trend":
-        trend_charts = []
+# --- Sidebar - Filter Section ---
+data_type = st.radio("Select Data Type:", ["Property", "Auto"])
+
+data = data_property if data_type == "Property" else data_auto
+
+metrics = sorted(data["Metric"].dropna().unique().tolist())
+companies = sorted(data["Company"].dropna().unique().tolist())
+time_periods = sorted(data["Time"].dropna().unique().tolist(), key=lambda x: (
+    ["Q1", "Q2", "Q3", "Q4", "H1", "H2"].index(x.split()[0]),
+    int(x.split()[1])
+))
+
+# --- Default Selections ---
+default_metrics = [metrics[0]] if metrics else []
+default_insurers = [ins for ins in ["Intact", "Definity"] if ins in companies]
+default_time = [tp for tp in ["Q1 2023", "Q1 2024", "Q2 2023", "Q2 2024", "Q3 2023", "Q3 2024"] if tp in time_periods]
+
+# --- User Selections ---
+selected_metrics = st.sidebar.multiselect("Select Metrics:", metrics, default=default_metrics)
+selected_insurers = st.sidebar.multiselect("Select Insurers:", companies, default=default_insurers)
+selected_time_period = st.sidebar.multiselect("Select Time Period:", time_periods, default=default_time)
+selected_tab = st.sidebar.selectbox("Select View:", ["Bar Chart", "Trend Charts by Metric"])
+
+# --- Sidebar Info ---
+st.sidebar.success(f"✅ {len(selected_metrics)} metric(s) selected.")
+st.sidebar.success(f"✅ {len(selected_insurers)} insurer(s) selected.")
+st.sidebar.success(f"✅ {len(selected_time_period)} time period(s) selected.")
+
+# --- Main Content Logic ---
+if not selected_metrics or not selected_insurers or not selected_time_period:
+    st.warning("⚠️ Please select at least one Metric, Insurer, and Time Period.")
+    st.stop()
+
+if selected_tab == "Bar Chart":
+    for metric in selected_metrics:
         filtered_data = data[
-            (data["Metric"].isin(selected_metrics)) &
+            (data["Metric"] == metric) &
             (data["Company"].isin(selected_insurers)) &
             (data["Time"].isin(selected_time_period))
         ]
-        for metric in selected_metrics:
-            metric_data = filtered_data[filtered_data["Metric"] == metric]
-            # Sort time periods in the order of the custom sorting key
-            metric_data["Time"] = pd.Categorical(metric_data["Time"], categories=time_order, ordered=True)
-            metric_data = metric_data.sort_values(by="Time")
-            fig = px.line(
-                metric_data,
-                x="Time",
-                y="Value",
-                color="Company",
-                title=f"Trend Chart for {metric}",
-                markers=True
-            )
-            trend_charts.append(dcc.Graph(figure=fig, style={"marginBottom": "20px"}))
-        return html.Div(trend_charts)
+        if filtered_data.empty:
+            st.warning(f"No data available for {metric} under current selections.")
+            continue
+        fig = px.bar(
+            filtered_data,
+            x="Company",
+            y="Value",
+            color="Time",
+            barmode="group",
+            title=f"Bar Chart for {metric}",
+            category_orders={"Time": time_periods}
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-
-# Run the Dash app
-if __name__ == "__main__":
-    app.run_server(debug=True)
+elif selected_tab == "Trend Charts by Metric":
+    filtered_data = data[
+        (data["Metric"].isin(selected_metrics)) &
+        (data["Company"].isin(selected_insurers)) &
+        (data["Time"].isin(selected_time_period))
+    ]
+    for metric in selected_metrics:
+        metric_data = filtered_data[filtered_data["Metric"] == metric].copy()
+        if metric_data.empty:
+            st.warning(f"No data available for {metric} under current selections.")
+            continue
+        metric_data["Time"] = pd.Categorical(metric_data["Time"], categories=time_periods, ordered=True)
+        metric_data = metric_data.sort_values("Time")
+        fig = px.line(
+            metric_data,
+            x="Time",
+            y="Value",
+            color="Company",
+            title=f"Trend Chart for {metric}",
+            markers=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
