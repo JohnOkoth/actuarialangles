@@ -10,3 +10,8 @@ shap
 statsmodels
 gunicorn
 gymnasium
+tensorflow
+shap
+random
+bayes_opt
+stable_baselines3
