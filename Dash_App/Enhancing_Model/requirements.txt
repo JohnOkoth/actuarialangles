@@ -10,8 +10,7 @@ shap
 statsmodels
 gunicorn
 gymnasium
-tensorflow
+tensorflow==2.15
 shap
-random
 bayes_opt
 stable_baselines3
