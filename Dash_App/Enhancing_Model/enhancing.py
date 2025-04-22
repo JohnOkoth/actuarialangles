@@ -26,8 +26,51 @@ import tensorflow as tf
 from stable_baselines3 import PPO
 from stable_baselines3.common.env_checker import check_env
 
+import streamlit as st
+from streamlit.components.v1 import html
+
 # Set page config as the first command
 st.set_page_config(layout="centered")
+
+analytics_code = """
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-9S5SM84Q3T');
+</script>
+"""
+html(analytics_code)
+
+
+# --- Sidebar: Back to Home Button ---
+home_button_html = [
+    "<!-- Custom Styles for Home Button -->",
+    "<style>",
+    "    #home-button {",
+    "        display: inline-block;",
+    "        background-color: #007BFF;",
+    "        color: white;",
+    "        border: none;",
+    "        padding: 10px 15px;",
+    "        font-size: 14px;",
+    "        font-weight: bold;",
+    "        border-radius: 5px;",
+    "        text-decoration: none;",
+    "        cursor: pointer;",
+    "        margin-bottom: 10px;",
+    "    }",
+    "    #home-button:hover {",
+    "        background-color: #0056b3;",
+    "    }",
+    "</style>",
+    '<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>',
+]
+st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
+
+
+
 
 # Load data
 augmented_data = pd.read_csv("https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/simulated.csv")
