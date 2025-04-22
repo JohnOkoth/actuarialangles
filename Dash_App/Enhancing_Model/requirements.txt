@@ -10,3 +10,4 @@ bayesian-optimization>=1.2.0
 streamlit>=1.10.0
 plotly>=5.5.0  # For visualizations in Streamlit
 statsmodels>=0.13.0  # Added for GLM (e.g., Gamma regression)
+tensorflow>=2.10.0 # Added TensorFlow for deep learning models
