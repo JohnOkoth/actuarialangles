@@ -6,11 +6,26 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 import pickle
 import os
+import request
 
 # Pre-process shapefile and save to disk for faster loading
 shapefile_path = "ontario_regions.shp"
 processed_gdf_path = "processed_ontario_regions.pkl"
 
+#"https://drive.google.com/file/d/1kuKF8Pm9XNj__iX030wBgfuCsnnjaPj3/view?usp=drive_link"
+# --- URL where the shapefile is hosted ---
+shapefile_url = "https://drive.google.com/file/d/1C6bPnxcZZg4pjc8J4sKYnH58bMSZ-7Sj/view?usp=drive_link"  # <<< Replace this with your actual link!
+
+# --- If shapefile doesn't exist locally, download it ---
+if not os.path.exists(shapefile_path):
+    os.makedirs(os.path.dirname(shapefile_path), exist_ok=True)  # Make sure folder exists
+    print(f"Downloading shapefile from {shapefile_url}...")
+    response = requests.get(shapefile_url)
+    with open(shapefile_path, 'wb') as f:
+        f.write(response.content)
+    print("Download completed!")
+
+# --- Now process shapefile or load processed data ---
 if os.path.exists(processed_gdf_path):
     with open(processed_gdf_path, 'rb') as f:
         gdf = pickle.load(f)
