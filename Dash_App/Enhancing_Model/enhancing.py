@@ -1,32 +1,12 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-from xgboost import XGBRegressor, DMatrix
 import plotly.graph_objects as go
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import GammaRegressor
 from scipy import optimize
-import bayes_opt
-import random
 import shap
-from statsmodels.api import GLM, families
 from bayes_opt import BayesianOptimization
-from bayes_opt.logger import JSONLogger
-from bayes_opt.event import Events
-import statsmodels.api as sm
-from statsmodels.genmod.families import Gamma
-from statsmodels.genmod.families.links import log
-from sklearn.preprocessing import StandardScaler, PolynomialFeatures
-from sklearn.metrics import mean_gamma_deviance
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
-import tensorflow as tf
-from stable_baselines3 import PPO
-from stable_baselines3.common.env_checker import check_env
-
-import streamlit as st
 from streamlit.components.v1 import html
 
 # Set page config as the first command
@@ -226,168 +206,6 @@ prepared_test_data['Actual_Sev'] = test_target_sev_full
 prepared_test_data['Exposure'] = test_target_exposure
 prepared_test_subset = prepared_test_data
 
-class WeightOptimizationEnv(gym.Env):
-    def __init__(self, optimize_weighted_error_func, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
-        super(WeightOptimizationEnv, self).__init__()
-        self.initial_weights = np.array(initial_weights, dtype=np.float32)
-        self.weights = self.initial_weights.copy()
-        self.optimize_weighted_error = optimize_weighted_error_func
-        self.prepared_test_subset = prepared_test_subset
-        self.bias_lower = bias_lower
-        self.bias_upper = bias_upper
-        self.eta = eta
-        self.max_depth = max_depth
-        self.min_child_weight = min_child_weight
-        self.subsample = subsample
-        self.colsample_bytree = colsample_bytree
-        self.gamma = gamma
-        self.nrounds = nrounds
-        self.weight_loss_ratio = weight_loss_ratio
-        
-        self.initial_bias = np.float32((bias_lower + bias_upper) / 2)
-        self.bias = self.initial_bias
-        self.bias_adjustments = np.zeros(10, dtype=np.float32)
-        
-        self.best_weights = self.weights.copy()
-        self.best_bias = self.bias
-        self.best_bias_adjustments = self.bias_adjustments.copy()
-        self.best_error = float('inf')
-        self.error_history = []
-        self.bias_history = []
-        self.reward_components_history = []
-        
-        low_bounds = [-0.05, -0.05, -0.05, -0.05]
-        high_bounds = [0.1, 0.05, 0.05, 0.05]
-        self.action_space = spaces.Box(low=np.array(low_bounds + [-0.05]*11),
-                                       high=np.array(high_bounds + [0.05]*11),
-                                       dtype=np.float32)
-        self.observation_space = spaces.Box(
-            low=np.concatenate([[0.0]*4, [bias_lower], [-0.5]*10]),
-            high=np.concatenate([[1.0]*4, [bias_upper], [0.5]*10]),
-            dtype=np.float32
-        )
-        
-        self.step_count = 0
-        self.max_steps = 100
-        self.target_bias = 5.4
-        self.bias_deviation_threshold = 0.1
-
-    def reset(self, seed=None, options=None):
-        self.weights = self.initial_weights.copy().astype(np.float32)
-        self.bias = self.initial_bias
-        self.bias_adjustments = np.zeros(10, dtype=np.float32)
-        self.step_count = 0
-        return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), {}
-
-    def step(self, action):
-        weight_actions = action[:4]
-        bias_action = action[4]
-        bias_adj_actions = action[5:]
-
-        self.weights += weight_actions
-        self.bias += bias_action
-        self.bias_adjustments += bias_adj_actions
-    
-        self.weights = np.clip(self.weights, 0.0, 1.0).astype(np.float32)
-        self.bias = np.clip(self.bias, self.bias_lower, self.bias_upper).astype(np.float32)
-        self.bias_adjustments = np.clip(self.bias_adjustments, -0.5, 0.5).astype(np.float32)
-    
-        self.weights[0] = max(self.weights[0], 0.3)
-        self.weights[1] = max(self.weights[1], 0.25)
-        weight_sum = np.sum(self.weights)
-        if weight_sum > 0:
-            self.weights = (self.weights / weight_sum).astype(np.float32)
-    
-        global weight_overall, weight_age, weight_vehicle, weight_car, weight_loss_ratio
-        weight_overall, weight_age, weight_vehicle, weight_car = self.weights
-        error_metrics = self.optimize_weighted_error(
-            bias=self.bias,
-            eta=self.eta,
-            max_depth=self.max_depth,
-            use_shap=False,
-            subsample_data=True,
-            bias_adjustments=dict(enumerate(self.bias_adjustments)),
-            prepared_test_subset=self.prepared_test_subset
-        )
-    
-        total_error = error_metrics['total_error']
-        weighted_rmse = error_metrics['weighted_rmse']
-        loss_ratio = error_metrics['loss_ratio']
-        low_risk_overprediction = error_metrics['low_risk_overprediction']
-        high_risk_underprediction = error_metrics['high_risk_underprediction']
-        high_risk_excessive_overprediction = error_metrics['high_risk_excessive_overprediction']
-        temp_metrics = error_metrics.get('temp_metrics', None)
-    
-        rmse_reward = np.exp(-0.1 * weighted_rmse**2)
-        overall_bonus = 0.2 * self.weights[0]
-        target_loss_ratio = 0.7
-        loss_ratio_penalty = -0.3 * (loss_ratio - target_loss_ratio)**2
-        
-        underprediction_penalty = 0.0 if temp_metrics is None else 0.3 * np.sum(np.maximum(0, temp_metrics['Actual_Sev'] - temp_metrics['Severity_SHAPXGBAdj']))
-        overprediction_penalty = 0.0 if temp_metrics is None else 2.0 * np.sum(np.maximum(0, temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev']))
-        
-        bias_regularization_penalty = 10.0 * (self.bias - self.target_bias)**2
-        
-        reward = (
-            rmse_reward +
-            overall_bonus +
-            loss_ratio_penalty -
-            0.5 * low_risk_overprediction -
-            0.3 * high_risk_underprediction -
-            0.5 * high_risk_excessive_overprediction -
-            underprediction_penalty -
-            overprediction_penalty -
-            bias_regularization_penalty
-        )
-    
-        if total_error < self.best_error:
-            self.best_error = total_error
-            self.best_weights = self.weights.copy()
-            self.best_bias = self.bias
-            self.best_bias_adjustments = self.bias_adjustments.copy()
-        
-        self.error_history.append(total_error)
-        self.bias_history.append(float(self.bias))
-        self.reward_components_history.append({
-            'rmse_reward': rmse_reward,
-            'overall_bonus': overall_bonus,
-            'loss_ratio_penalty': loss_ratio_penalty,
-            'low_risk_overprediction': low_risk_overprediction,
-            'high_risk_underprediction': high_risk_underprediction,
-            'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
-            'underprediction_penalty': underprediction_penalty,
-            'overprediction_penalty': overprediction_penalty,
-            'bias_regularization_penalty': bias_regularization_penalty,
-            'total_reward': reward
-        })
-        
-        self.step_count += 1
-        done = self.step_count >= self.max_steps
-        truncated = False
-        
-        if abs(self.bias - self.target_bias) > self.bias_deviation_threshold:
-            self.bias = self.target_bias
-            done = True
-            reward -= 10.0
-    
-        info = {
-            'total_error': total_error,
-            'best_error': self.best_error,
-            'best_weights': self.best_weights,
-            'best_bias': self.bias,
-            'best_bias_adjustments': self.bias_adjustments,
-            'weighted_rmse': weighted_rmse,
-            'loss_ratio': loss_ratio,
-            'low_risk_overprediction': low_risk_overprediction,
-            'high_risk_underprediction': high_risk_underprediction,
-            'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
-            'temp_metrics': temp_metrics
-        }
-        
-        return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), reward, done, truncated, info
-
-    def render(self, mode='human'):
-        pass
 
 # Data Preprocessing
 for cat_var in ["Age", "Vehicle_Use", "Car_Model"]:
@@ -751,6 +569,179 @@ if st.sidebar.button("Update & Optimize"):
 
 
     elif opt_method == "Reinforcement Learning":
+          import tensorflow as tf
+          from stable_baselines3 import PPO
+          import gymnasium as gym
+          from gymnasium import spaces
+          from stable_baselines3.common.env_checker import check_env
+          
+          class WeightOptimizationEnv(gym.Env):
+              def __init__(self, optimize_weighted_error_func, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
+                  super(WeightOptimizationEnv, self).__init__()
+                  self.initial_weights = np.array(initial_weights, dtype=np.float32)
+                  self.weights = self.initial_weights.copy()
+                  self.optimize_weighted_error = optimize_weighted_error_func
+                  self.prepared_test_subset = prepared_test_subset
+                  self.bias_lower = bias_lower
+                  self.bias_upper = bias_upper
+                  self.eta = eta
+                  self.max_depth = max_depth
+                  self.min_child_weight = min_child_weight
+                  self.subsample = subsample
+                  self.colsample_bytree = colsample_bytree
+                  self.gamma = gamma
+                  self.nrounds = nrounds
+                  self.weight_loss_ratio = weight_loss_ratio
+        
+                  self.initial_bias = np.float32((bias_lower + bias_upper) / 2)
+                  self.bias = self.initial_bias
+                  self.bias_adjustments = np.zeros(10, dtype=np.float32)
+        
+                  self.best_weights = self.weights.copy()
+                  self.best_bias = self.bias
+                  self.best_bias_adjustments = self.bias_adjustments.copy()
+                  self.best_error = float('inf')
+                  self.error_history = []
+                  self.bias_history = []
+                  self.reward_components_history = []
+        
+                  low_bounds = [-0.05, -0.05, -0.05, -0.05]
+                  high_bounds = [0.1, 0.05, 0.05, 0.05]
+                  self.action_space = spaces.Box(low=np.array(low_bounds + [-0.05]*11),
+                                                 high=np.array(high_bounds + [0.05]*11),
+                                                 dtype=np.float32)
+                  self.observation_space = spaces.Box(
+                      low=np.concatenate([[0.0]*4, [bias_lower], [-0.5]*10]),
+                      high=np.concatenate([[1.0]*4, [bias_upper], [0.5]*10]),
+                      dtype=np.float32
+                  )
+        
+                  self.step_count = 0
+                  self.max_steps = 100
+                  self.target_bias = 5.4
+                  self.bias_deviation_threshold = 0.1
+
+              def reset(self, seed=None, options=None):
+                  self.weights = self.initial_weights.copy().astype(np.float32)
+                  self.bias = self.initial_bias
+                  self.bias_adjustments = np.zeros(10, dtype=np.float32)
+                  self.step_count = 0
+                  return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), {}
+
+              def step(self, action):
+                  weight_actions = action[:4]
+                  bias_action = action[4]
+                  bias_adj_actions = action[5:]
+
+                  self.weights += weight_actions
+                  self.bias += bias_action
+                  self.bias_adjustments += bias_adj_actions
+    
+                  self.weights = np.clip(self.weights, 0.0, 1.0).astype(np.float32)
+                  self.bias = np.clip(self.bias, self.bias_lower, self.bias_upper).astype(np.float32)
+                  self.bias_adjustments = np.clip(self.bias_adjustments, -0.5, 0.5).astype(np.float32)
+    
+                  self.weights[0] = max(self.weights[0], 0.3)
+                  self.weights[1] = max(self.weights[1], 0.25)
+                  weight_sum = np.sum(self.weights)
+                  if weight_sum > 0:
+                        self.weights = (self.weights / weight_sum).astype(np.float32)
+    
+                  global weight_overall, weight_age, weight_vehicle, weight_car, weight_loss_ratio
+                  weight_overall, weight_age, weight_vehicle, weight_car = self.weights
+                  error_metrics = self.optimize_weighted_error(
+                      bias=self.bias,
+                      eta=self.eta,
+                      max_depth=self.max_depth,
+                      use_shap=False,
+                      subsample_data=True,
+                      bias_adjustments=dict(enumerate(self.bias_adjustments)),
+                      prepared_test_subset=self.prepared_test_subset
+                  )
+                  
+    
+                  total_error = error_metrics['total_error']
+                  weighted_rmse = error_metrics['weighted_rmse']
+                  loss_ratio = error_metrics['loss_ratio']
+                  low_risk_overprediction = error_metrics['low_risk_overprediction']
+                  high_risk_underprediction = error_metrics['high_risk_underprediction']
+                  high_risk_excessive_overprediction = error_metrics['high_risk_excessive_overprediction']
+                  temp_metrics = error_metrics.get('temp_metrics', None)
+    
+                  rmse_reward = np.exp(-0.1 * weighted_rmse**2)
+                  overall_bonus = 0.2 * self.weights[0]
+                  target_loss_ratio = 0.7
+                  loss_ratio_penalty = -0.3 * (loss_ratio - target_loss_ratio)**2
+        
+                  underprediction_penalty = 0.0 if temp_metrics is None else 0.3 * np.sum(np.maximum(0, temp_metrics['Actual_Sev'] - temp_metrics['Severity_SHAPXGBAdj']))
+                  overprediction_penalty = 0.0 if temp_metrics is None else 2.0 * np.sum(np.maximum(0, temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev']))
+        
+                  bias_regularization_penalty = 10.0 * (self.bias - self.target_bias)**2
+        
+                  reward = (
+                      rmse_reward +
+                      overall_bonus +
+                      loss_ratio_penalty -
+                      0.5 * low_risk_overprediction -
+                      0.3 * high_risk_underprediction -
+                      0.5 * high_risk_excessive_overprediction -
+                      underprediction_penalty -
+                      overprediction_penalty -
+                      bias_regularization_penalty
+                   )
+    
+                   if total_error < self.best_error:
+                       self.best_error = total_error
+                       self.best_weights = self.weights.copy()
+                       self.best_bias = self.bias
+                       self.best_bias_adjustments = self.bias_adjustments.copy()
+        
+                       self.error_history.append(total_error)
+                       self.bias_history.append(float(self.bias))
+                       self.reward_components_history.append({
+                           'rmse_reward': rmse_reward,
+                           'overall_bonus': overall_bonus,
+                           'loss_ratio_penalty': loss_ratio_penalty,
+                           'low_risk_overprediction': low_risk_overprediction,
+                           'high_risk_underprediction': high_risk_underprediction,
+                           'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
+                           'underprediction_penalty': underprediction_penalty,
+                           'overprediction_penalty': overprediction_penalty,
+                           'bias_regularization_penalty': bias_regularization_penalty,
+                           'total_reward': reward
+                       })
+        
+                       self.step_count += 1
+                       done = self.step_count >= self.max_steps
+                       truncated = False
+        
+                       if abs(self.bias - self.target_bias) > self.bias_deviation_threshold:
+                           self.bias = self.target_bias
+                           done = True
+                           reward -= 10.0
+    
+                       info = {
+                           'total_error': total_error,
+                           'best_error': self.best_error,
+                           'best_weights': self.best_weights,
+                           'best_bias': self.bias,
+                           'best_bias_adjustments': self.bias_adjustments,
+                           'weighted_rmse': weighted_rmse,
+                           'loss_ratio': loss_ratio,
+                           'low_risk_overprediction': low_risk_overprediction,
+                           'high_risk_underprediction': high_risk_underprediction,
+                           'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
+                           'temp_metrics': temp_metrics
+                       }
+        
+                       return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), reward, done, truncated, info
+
+                   def render(self, mode='human'):
+                       pass
+
+          
+          
+          
         eta = min(eta, 0.3)
         initial_weights = [weight_overall, weight_age, weight_vehicle, weight_car]
         env = WeightOptimizationEnv(
