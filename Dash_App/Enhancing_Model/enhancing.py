@@ -8,6 +8,7 @@ from scipy import optimize
 import shap
 from bayes_opt import BayesianOptimization
 from streamlit.components.v1 import html
+from xgboost import XGBRegressor, DMatrix
 
 # Set page config as the first command
 st.set_page_config(layout="centered")
@@ -22,7 +23,6 @@ analytics_code = """
 </script>
 """
 html(analytics_code)
-
 
 # --- Sidebar: Back to Home Button ---
 home_button_html = [
@@ -48,9 +48,6 @@ home_button_html = [
     '<a id="home-button" href="https://johnokoth.github.io/actuarialangles">Back to Home</a>',
 ]
 st.sidebar.markdown("\n".join(home_button_html), unsafe_allow_html=True)
-
-
-
 
 # Load data
 augmented_data = pd.read_csv("https://raw.githubusercontent.com/JohnOkoth/actuarialangles/main/data/simulated.csv")
@@ -206,28 +203,7 @@ prepared_test_data['Actual_Sev'] = test_target_sev_full
 prepared_test_data['Exposure'] = test_target_exposure
 prepared_test_subset = prepared_test_data
 
-
-# Data Preprocessing
-for cat_var in ["Age", "Vehicle_Use", "Car_Model"]:
-    total_exposure = augmented_data.groupby(cat_var)['Exposure'].sum().sort_values(ascending=False)
-    augmented_data[cat_var] = pd.Categorical(augmented_data[cat_var], categories=total_exposure.index, ordered=True)
-
-dummy_vars_sev = pd.get_dummies(augmented_data.drop(columns=["Group", "Severity", "Exposure", "Claim_Count"]), prefix_sep='_')
-main_data = dummy_vars_sev.drop(columns=[col for col in dummy_vars_sev.columns if any(cat in col for cat in ["Age_", "Vehicle_Use_", "Car_Model_"])])
-model_data = dummy_vars_sev.drop(columns=[col for col in dummy_vars_sev.columns if col in ["Age_F", "Vehicle_Use_DriveShort", "Car_Model_Mazda CX-9"]])
-target_sev = augmented_data['Severity']
-target_exposure = augmented_data['Claim_Count']
-
-train_data_sev, test_data_sev, train_target_sev, test_target_sev = train_test_split(model_data, target_sev, test_size=0.2, random_state=42)
-train_data_full, test_data_full, train_target_sev, test_target_sev = train_test_split(
-    dummy_vars_sev, target_sev, test_size=0.2, random_state=42
-)
-train_target_exposure = target_exposure.loc[train_data_full.index]
-test_target_exposure = target_exposure.loc[test_data_full.index]
-
-dtrain_sev = DMatrix(train_data_sev, label=train_target_sev)
-dtest_sev = DMatrix(test_data_sev, label=test_target_sev)
-
+# Model Training
 gamma_model = GammaRegressor(alpha=0.0001, max_iter=5000, tol=1e-8)
 model_severity_glm = gamma_model.fit(train_data_sev, train_target_sev)
 
@@ -252,8 +228,7 @@ min_child_weight = st.sidebar.slider("Min Child Weight", 1, 3, 1, step=1)
 subsample = st.sidebar.slider("Sub Sample", 0.5, 0.9, 0.5, step=0.1)
 bias_factor = st.sidebar.slider("Bias Factor", bias_lower, bias_upper, (bias_lower + bias_upper) / 2, step=0.001)
 st.sidebar.markdown("**Note:** Total Timesteps controls RL training duration. Increase to 5000 for potentially better results")
-total_timesteps = st.sidebar.slider("Total Timesteps (RL)", 1000, 5000, 3000, step=1000)  # Default changed to 3000
-
+total_timesteps = st.sidebar.slider("Total Timesteps (RL)", 1000, 5000, 3000, step=1000)
 
 st.sidebar.header("Variable Weights")
 weight_overall = st.sidebar.number_input("Weight: Overall", 0.0, 1.0, 0.5, step=0.05)
@@ -308,17 +283,23 @@ if st.sidebar.button("Update & Optimize"):
     prepared_test_data['Predicted_Severity_GLM'] = model_severity_glm.predict(test_data_for_pred)
     prepared_test_data['Predicted_Severity_GLM2'] = model_severity_glm2.predict(test_data_for_pred[glm_cols])
 
-    prepared_test_data['Severity_SHAPXGB'] = prepared_test_data.apply(lambda row: calculate_severity(row, shap_values2, np.exp(shap_values2[shap_values2['Feature'] == 'BIAS']['MeanSHAP'].iloc[0])), axis=1)
-	
+    prepared_test_data['Severity_SHAPXGB'] = prepared_test_data.apply(
+        lambda row: calculate_severity(row, shap_values2, np.exp(shap_values2[shap_values2['Feature'] == 'BIAS']['MeanSHAP'].iloc[0])), axis=1
+    )
+
     def optimize_weighted_error_notrl(bias, eta=eta, max_depth=max_depth):
-        params = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-                  'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma}
+        params = {
+            'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
+            'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma
+        }
         xgb_model = XGBRegressor(**params, n_estimators=nrounds)
         xgb_model.fit(train_data_sev, train_target_sev)
         shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, train_data_sev)
         
         temp_test_data = prepared_test_data.copy()
-        temp_test_data['Severity_SHAPXGBAdj'] = temp_test_data.apply(lambda row: calculate_severity(row, shap_values, np.exp(bias)), axis=1)
+        temp_test_data['Severity_SHAPXGBAdj'] = temp_test_data.apply(
+            lambda row: calculate_severity(row, shap_values, np.exp(bias)), axis=1
+        )
         
         temp_ordered = temp_test_data.sort_values('Predicted_Severity_GLM')
         temp_ordered['Decile'] = pd.qcut(temp_ordered['Predicted_Severity_GLM'], 10, labels=False, duplicates='drop')
@@ -327,10 +308,12 @@ if st.sidebar.button("Update & Optimize"):
         overall_rmse = np.sqrt(np.mean((temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev'])**2))
         
         def var_rmse(category_name):
-            category_data = temp_test_data.melt(id_vars=['Severity_SHAPXGBAdj', 'Actual_Sev'],
-                                                value_vars=test_data_sev.columns,
-                                                var_name='Variable',
-                                                value_name='Factor_Level')
+            category_data = temp_test_data.melt(
+                id_vars=['Severity_SHAPXGBAdj', 'Actual_Sev'],
+                value_vars=test_data_sev.columns,
+                var_name='Variable',
+                value_name='Factor_Level'
+            )
             category_data = category_data[(category_data['Factor_Level'] == 1) & (category_data['Variable'].str.contains(category_name))]
             category_data = category_data.groupby('Variable').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
             return np.sqrt(np.mean((category_data['Severity_SHAPXGBAdj'] - category_data['Actual_Sev'])**2))
@@ -370,14 +353,8 @@ if st.sidebar.button("Update & Optimize"):
             'low_risk_overprediction': low_risk_overprediction,
             'high_risk_underprediction': high_risk_underprediction,
             'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
-            'temp_metrics': temp_metrics  # Optional, for debugging or decile analysis
+            'temp_metrics': temp_metrics
         }
-
-   # Define a wrapper function to fix eta and max_depth
-    def optimize_weighted_error_bias_only(bias):
-        return optimize_weighted_error_notrl(bias, eta=eta, max_depth=max_depth)
-
-
 
     def optimize_weighted_error(bias, eta, max_depth, use_shap=True, subsample_data=False, bias_adjustments=None, prepared_test_subset=None):
         try:
@@ -400,8 +377,10 @@ if st.sidebar.button("Update & Optimize"):
                     temp_test_data = test_data_subset.copy()
                     temp_test_data['Actual_Sev'] = test_target_sev[test_data_subset.index]
         
-            params = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-                      'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma}
+            params = {
+                'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
+                'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma
+            }
             xgb_model = XGBRegressor(**params, n_estimators=100)
             xgb_model.fit(train_data_subset, train_target_subset)
         
@@ -410,8 +389,10 @@ if st.sidebar.button("Update & Optimize"):
             if use_shap:
                 shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, train_data_subset)
                 if bias_adjustments is not None:
-                    temp_test_data['Decile'] = pd.qcut(temp_test_data['Predicted_Severity_GLM'] if 'Predicted_Severity_GLM' in temp_test_data.columns else temp_test_data['Severity_SHAPXGB'], 
-                                                      10, labels=False, duplicates='drop')
+                    temp_test_data['Decile'] = pd.qcut(
+                        temp_test_data['Predicted_Severity_GLM'] if 'Predicted_Severity_GLM' in temp_test_data.columns else temp_test_data['Severity_SHAPXGB'], 
+                        10, labels=False, duplicates='drop'
+                    )
                     temp_test_data['Severity_SHAPXGBAdj'] = temp_test_data.apply(
                         lambda row: calculate_severity(row, shap_values, np.exp(bias), row['Decile'], bias_adjustments), axis=1
                     )
@@ -440,19 +421,23 @@ if st.sidebar.button("Update & Optimize"):
             if 'Predicted_Severity_GLM' not in temp_test_data.columns:
                 temp_ordered = temp_test_data.sort_values('Severity_SHAPXGB')
             else:
-                 temp_ordered = temp_test_data.sort_values('Predicted_Severity_GLM')
+                temp_ordered = temp_test_data.sort_values('Predicted_Severity_GLM')
         
-            temp_ordered['Decile'] = pd.qcut(temp_ordered['Predicted_Severity_GLM'] if 'Predicted_Severity_GLM' in temp_ordered.columns else temp_ordered['Severity_SHAPXGB'], 
-                                            10, labels=False, duplicates='drop')
+            temp_ordered['Decile'] = pd.qcut(
+                temp_ordered['Predicted_Severity_GLM'] if 'Predicted_Severity_GLM' in temp_ordered.columns else temp_ordered['Severity_SHAPXGB'], 
+                10, labels=False, duplicates='drop'
+            )
             temp_metrics = temp_ordered.groupby('Decile').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
         
             overall_rmse = np.sqrt(np.mean((temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev'])**2))
         
             def var_rmse(category_name):
-                category_data = temp_test_data.melt(id_vars=['Severity_SHAPXGBAdj', 'Actual_Sev'],
-                                                    value_vars=test_data_subset.columns,
-                                                    var_name='Variable',
-                                                    value_name='Factor_Level')
+                category_data = temp_test_data.melt(
+                    id_vars=['Severity_SHAPXGBAdj', 'Actual_Sev'],
+                    value_vars=test_data_subset.columns,
+                    var_name='Variable',
+                    value_name='Factor_Level'
+                )
                 category_data = category_data[(category_data['Factor_Level'] == 1) & (category_data['Variable'].str.contains(category_name))]
                 category_data = category_data.groupby('Variable').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
                 return np.sqrt(np.mean((category_data['Severity_SHAPXGBAdj'] - category_data['Actual_Sev'])**2))
@@ -473,7 +458,7 @@ if st.sidebar.button("Update & Optimize"):
                 weighted_rmse +
                 (weight_loss_ratio * loss_ratio) +
                 (0.5 * low_risk_overprediction) +
-                (2.0 * high_risk_underprediction) +  # Increased to penalize underprediction more
+                (2.0 * high_risk_underprediction) +
                 (0.5 * high_risk_excessive_overprediction)
             )
         
@@ -489,7 +474,6 @@ if st.sidebar.button("Update & Optimize"):
         except Exception as e:
             print(f"Error in optimize_weighted_error: {str(e)}")
             return None
-    metrics = None
 
     # Optimization method selection
     if opt_method == "Single Parameter":
@@ -500,41 +484,38 @@ if st.sidebar.button("Update & Optimize"):
         optimized_params = {'bias': opt_result.x, 'eta': eta, 'max_depth': max_depth}
         metrics = optimize_weighted_error_notrl(opt_result.x, eta, max_depth)
         weighted_error = metrics['total_error']
-        #weighted_error = opt_result.fun
 
     elif opt_method == "Bayesian":
-       bias_bounds = (bias_lower, bias_upper)
-       eta_bounds = (0.01, 0.3)
-       max_depth_bounds = (3, 10)
-       error_threshold = 0  # Uncommented and used
+        bias_bounds = (bias_lower, bias_upper)
+        eta_bounds = (0.01, 0.3)
+        max_depth_bounds = (3, 10)
+        error_threshold = 0
 
-       def bayes_opt_func(bias, eta, max_depth):
-           return -optimize_weighted_error_notrl(bias, eta, int(round(max_depth)))['weighted_rmse']
+        def bayes_opt_func(bias, eta, max_depth):
+            return -optimize_weighted_error_notrl(bias, eta, int(round(max_depth)))['weighted_rmse']
 
-       def optimize_with_early_stopping(bias_bounds, eta_bounds, max_depth_bounds, init_points=5, n_iter=20, error_threshold=0.0):
-           optimizer = BayesianOptimization(
-               f=bayes_opt_func,
-               pbounds={'bias': bias_bounds, 'eta': eta_bounds, 'max_depth': max_depth_bounds},
-               random_state=42,
-               verbose=2
-           )
+        def optimize_with_early_stopping(bias_bounds, eta_bounds, max_depth_bounds, init_points=5, n_iter=20, error_threshold=0.0):
+            optimizer = BayesianOptimization(
+                f=bayes_opt_func,
+                pbounds={'bias': bias_bounds, 'eta': eta_bounds, 'max_depth': max_depth_bounds},
+                random_state=42,
+                verbose=2
+            )
 
-           optimizer.maximize(init_points=init_points, n_iter=n_iter)
-           optimized_params = optimizer.max['params']
-           optimized_params['max_depth'] = int(round(optimized_params['max_depth']))
-           metrics = optimize_weighted_error_notrl(
-               optimized_params['bias'],
-               optimized_params['eta'],
-               optimized_params['max_depth']
-           )
-           weighted_error = metrics['total_error']
-           return optimized_params, metrics, weighted_error  # Return values to outer scope
+            optimizer.maximize(init_points=init_points, n_iter=n_iter)
+            optimized_params = optimizer.max['params']
+            optimized_params['max_depth'] = int(round(optimized_params['max_depth']))
+            metrics = optimize_weighted_error_notrl(
+                optimized_params['bias'],
+                optimized_params['eta'],
+                optimized_params['max_depth']
+            )
+            weighted_error = metrics['total_error']
+            return optimized_params, metrics, weighted_error
 
-    # Call the function and assign results
-       optimized_params, metrics, weighted_error = optimize_with_early_stopping(
-           bias_bounds, eta_bounds, max_depth_bounds, init_points=5, n_iter=20, error_threshold=error_threshold
-       )
-        
+        optimized_params, metrics, weighted_error = optimize_with_early_stopping(
+            bias_bounds, eta_bounds, max_depth_bounds, init_points=5, n_iter=20, error_threshold=error_threshold
+        )
 
     elif opt_method == "Random Search":
         n_samples = 10
@@ -543,7 +524,9 @@ if st.sidebar.button("Update & Optimize"):
             'eta': np.random.uniform(0.01, 0.1, n_samples),
             'max_depth': np.random.choice([6, 8, 10], n_samples)
         })
-        results = random_search.apply(lambda row: optimize_weighted_error_notrl(row['bias'], row['eta'], row['max_depth'])['weighted_rmse'], axis=1)
+        results = random_search.apply(
+            lambda row: optimize_weighted_error_notrl(row['bias'], row['eta'], row['max_depth'])['weighted_rmse'], axis=1
+        )
         best_idx = results.idxmin()
         optimized_params = random_search.loc[best_idx].to_dict()
         metrics = optimize_weighted_error_notrl(
@@ -551,197 +534,189 @@ if st.sidebar.button("Update & Optimize"):
             optimized_params['eta'],
             optimized_params['max_depth']
         )
-        #weighted_error = metrics['total_error']
         weighted_error = results[best_idx]
 
-
-     
-
-
     elif opt_method == "Manual":
-         optimized_params = {'bias': bias_factor, 'eta': eta, 'max_depth': max_depth}
-         metrics = optimize_weighted_error_notrl(bias_factor, eta, max_depth)
-         weighted_error = metrics['total_error']
-    # Recompute final metrics with adjusted bias
-        
-   
-
-
+        optimized_params = {'bias': bias_factor, 'eta': eta, 'max_depth': max_depth}
+        metrics = optimize_weighted_error_notrl(bias_factor, eta, max_depth)
+        weighted_error = metrics['total_error']
 
     elif opt_method == "Reinforcement Learning":
-          import tensorflow as tf
-          from stable_baselines3 import PPO
-          import gymnasium as gym
-          from gymnasium import spaces
-          from stable_baselines3.common.env_checker import check_env
-          
-          class WeightOptimizationEnv(gym.Env):
-              def __init__(self, optimize_weighted_error_func, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
-                  super(WeightOptimizationEnv, self).__init__()
-                  self.initial_weights = np.array(initial_weights, dtype=np.float32)
-                  self.weights = self.initial_weights.copy()
-                  self.optimize_weighted_error = optimize_weighted_error_func
-                  self.prepared_test_subset = prepared_test_subset
-                  self.bias_lower = bias_lower
-                  self.bias_upper = bias_upper
-                  self.eta = eta
-                  self.max_depth = max_depth
-                  self.min_child_weight = min_child_weight
-                  self.subsample = subsample
-                  self.colsample_bytree = colsample_bytree
-                  self.gamma = gamma
-                  self.nrounds = nrounds
-                  self.weight_loss_ratio = weight_loss_ratio
+        import tensorflow as tf
+        from stable_baselines3 import PPO
+        import gymnasium as gym
+        from gymnasium import spaces
+        from stable_baselines3.common.env_checker import check_env
         
-                  self.initial_bias = np.float32((bias_lower + bias_upper) / 2)
-                  self.bias = self.initial_bias
-                  self.bias_adjustments = np.zeros(10, dtype=np.float32)
+        class WeightOptimizationEnv(gym.Env):
+            def __init__(self, optimize_weighted_error_func, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
+                super(WeightOptimizationEnv, self).__init__()
+                self.initial_weights = np.array(initial_weights, dtype=np.float32)
+                self.weights = self.initial_weights.copy()
+                self.optimize_weighted_error = optimize_weighted_error_func
+                self.prepared_test_subset = prepared_test_subset
+                self.bias_lower = bias_lower
+                self.bias_upper = bias_upper
+                self.eta = eta
+                self.max_depth = max_depth
+                self.min_child_weight = min_child_weight
+                self.subsample = subsample
+                self.colsample_bytree = colsample_bytree
+                self.gamma = gamma
+                self.nrounds = nrounds
+                self.weight_loss_ratio = weight_loss_ratio
         
-                  self.best_weights = self.weights.copy()
-                  self.best_bias = self.bias
-                  self.best_bias_adjustments = self.bias_adjustments.copy()
-                  self.best_error = float('inf')
-                  self.error_history = []
-                  self.bias_history = []
-                  self.reward_components_history = []
+                self.initial_bias = np.float32((bias_lower + bias_upper) / 2)
+                self.bias = self.initial_bias
+                self.bias_adjustments = np.zeros(10, dtype=np.float32)
         
-                  low_bounds = [-0.05, -0.05, -0.05, -0.05]
-                  high_bounds = [0.1, 0.05, 0.05, 0.05]
-                  self.action_space = spaces.Box(low=np.array(low_bounds + [-0.05]*11),
-                                                 high=np.array(high_bounds + [0.05]*11),
-                                                 dtype=np.float32)
-                  self.observation_space = spaces.Box(
-                      low=np.concatenate([[0.0]*4, [bias_lower], [-0.5]*10]),
-                      high=np.concatenate([[1.0]*4, [bias_upper], [0.5]*10]),
-                      dtype=np.float32
-                  )
+                self.best_weights = self.weights.copy()
+                self.best_bias = self.bias
+                self.best_bias_adjustments = self.bias_adjustments.copy()
+                self.best_error = float('inf')
+                self.error_history = []
+                self.bias_history = []
+                self.reward_components_history = []
         
-                  self.step_count = 0
-                  self.max_steps = 100
-                  self.target_bias = 5.4
-                  self.bias_deviation_threshold = 0.1
+                low_bounds = [-0.05, -0.05, -0.05, -0.05]
+                high_bounds = [0.1, 0.05, 0.05, 0.05]
+                self.action_space = spaces.Box(
+                    low=np.array(low_bounds + [-0.05]*11),
+                    high=np.array(high_bounds + [0.05]*11),
+                    dtype=np.float32
+                )
+                self.observation_space = spaces.Box(
+                    low=np.concatenate([[0.0]*4, [bias_lower], [-0.5]*10]),
+                    high=np.concatenate([[1.0]*4, [bias_upper], [0.5]*10]),
+                    dtype=np.float32
+                )
+        
+                self.step_count = 0
+                self.max_steps = 100
+                self.target_bias = 5.4
+                self.bias_deviation_threshold = 0.1
 
-              def reset(self, seed=None, options=None):
-                  self.weights = self.initial_weights.copy().astype(np.float32)
-                  self.bias = self.initial_bias
-                  self.bias_adjustments = np.zeros(10, dtype=np.float32)
-                  self.step_count = 0
-                  return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), {}
+            def reset(self, seed=None, options=None):
+                self.weights = self.initial_weights.copy().astype(np.float32)
+                self.bias = self.initial_bias
+                self.bias_adjustments = np.zeros(10, dtype=np.float32)
+                self.step_count = 0
+                return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), {}
 
-              def step(self, action):
-                  weight_actions = action[:4]
-                  bias_action = action[4]
-                  bias_adj_actions = action[5:]
+            def step(self, action):
+                weight_actions = action[:4]
+                bias_action = action[4]
+                bias_adj_actions = action[5:]
 
-                  self.weights += weight_actions
-                  self.bias += bias_action
-                  self.bias_adjustments += bias_adj_actions
+                self.weights += weight_actions
+                self.bias += bias_action
+                self.bias_adjustments += bias_adj_actions
     
-                  self.weights = np.clip(self.weights, 0.0, 1.0).astype(np.float32)
-                  self.bias = np.clip(self.bias, self.bias_lower, self.bias_upper).astype(np.float32)
-                  self.bias_adjustments = np.clip(self.bias_adjustments, -0.5, 0.5).astype(np.float32)
+                self.weights = np.clip(self.weights, 0.0, 1.0).astype(np.float32)
+                self.bias = np.clip(self.bias, self.bias_lower, self.bias_upper).astype(np.float32)
+                self.bias_adjustments = np.clip(self.bias_adjustments, -0.5, 0.5).astype(np.float32)
     
-                  self.weights[0] = max(self.weights[0], 0.3)
-                  self.weights[1] = max(self.weights[1], 0.25)
-                  weight_sum = np.sum(self.weights)
-                  if weight_sum > 0:
-                        self.weights = (self.weights / weight_sum).astype(np.float32)
+                self.weights[0] = max(self.weights[0], 0.3)
+                self.weights[1] = max(self.weights[1], 0.25)
+                weight_sum = np.sum(self.weights)
+                if weight_sum > 0:
+                    self.weights = (self.weights / weight_sum).astype(np.float32)
     
-                  global weight_overall, weight_age, weight_vehicle, weight_car, weight_loss_ratio
-                  weight_overall, weight_age, weight_vehicle, weight_car = self.weights
-                  error_metrics = self.optimize_weighted_error(
-                      bias=self.bias,
-                      eta=self.eta,
-                      max_depth=self.max_depth,
-                      use_shap=False,
-                      subsample_data=True,
-                      bias_adjustments=dict(enumerate(self.bias_adjustments)),
-                      prepared_test_subset=self.prepared_test_subset
-                  )
-                  
+                global weight_overall, weight_age, weight_vehicle, weight_car, weight_loss_ratio
+                weight_overall, weight_age, weight_vehicle, weight_car = self.weights
+                error_metrics = self.optimize_weighted_error(
+                    bias=self.bias,
+                    eta=self.eta,
+                    max_depth=self.max_depth,
+                    use_shap=False,
+                    subsample_data=True,
+                    bias_adjustments=dict(enumerate(self.bias_adjustments)),
+                    prepared_test_subset=self.prepared_test_subset
+                )
     
-                  total_error = error_metrics['total_error']
-                  weighted_rmse = error_metrics['weighted_rmse']
-                  loss_ratio = error_metrics['loss_ratio']
-                  low_risk_overprediction = error_metrics['low_risk_overprediction']
-                  high_risk_underprediction = error_metrics['high_risk_underprediction']
-                  high_risk_excessive_overprediction = error_metrics['high_risk_excessive_overprediction']
-                  temp_metrics = error_metrics.get('temp_metrics', None)
+                total_error = error_metrics['total_error']
+                weighted_rmse = error_metrics['weighted_rmse']
+                loss_ratio = error_metrics['loss_ratio']
+                low_risk_overprediction = error_metrics['low_risk_overprediction']
+                high_risk_underprediction = error_metrics['high_risk_underprediction']
+                high_risk_excessive_overprediction = error_metrics['high_risk_excessive_overprediction']
+                temp_metrics = error_metrics.get('temp_metrics', None)
     
-                  rmse_reward = np.exp(-0.1 * weighted_rmse**2)
-                  overall_bonus = 0.2 * self.weights[0]
-                  target_loss_ratio = 0.7
-                  loss_ratio_penalty = -0.3 * (loss_ratio - target_loss_ratio)**2
+                rmse_reward = np.exp(-0.1 * weighted_rmse**2)
+                overall_bonus = 0.2 * self.weights[0]
+                target_loss_ratio = 0.7
+                loss_ratio_penalty = -0.3 * (loss_ratio - target_loss_ratio)**2
         
-                  underprediction_penalty = 0.0 if temp_metrics is None else 0.3 * np.sum(np.maximum(0, temp_metrics['Actual_Sev'] - temp_metrics['Severity_SHAPXGBAdj']))
-                  overprediction_penalty = 0.0 if temp_metrics is None else 2.0 * np.sum(np.maximum(0, temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev']))
+                underprediction_penalty = 0.0 if temp_metrics is None else 0.3 * np.sum(
+                    np.maximum(0, temp_metrics['Actual_Sev'] - temp_metrics['Severity_SHAPXGBAdj'])
+                )
+                overprediction_penalty = 0.0 if temp_metrics is None else 2.0 * np.sum(
+                    np.maximum(0, temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev'])
+                )
         
-                  bias_regularization_penalty = 10.0 * (self.bias - self.target_bias)**2
+                bias_regularization_penalty = 10.0 * (self.bias - self.target_bias)**2
         
-                  reward = (
-                      rmse_reward +
-                      overall_bonus +
-                      loss_ratio_penalty -
-                      0.5 * low_risk_overprediction -
-                      0.3 * high_risk_underprediction -
-                      0.5 * high_risk_excessive_overprediction -
-                      underprediction_penalty -
-                      overprediction_penalty -
-                      bias_regularization_penalty
-                   )
+                reward = (
+                    rmse_reward +
+                    overall_bonus +
+                    loss_ratio_penalty -
+                    0.5 * low_risk_overprediction -
+                    0.3 * high_risk_underprediction -
+                    0.5 * high_risk_excessive_overprediction -
+                    underprediction_penalty -
+                    overprediction_penalty -
+                    bias_regularization_penalty
+                )
     
-                   if total_error < self.best_error:
-                       self.best_error = total_error
-                       self.best_weights = self.weights.copy()
-                       self.best_bias = self.bias
-                       self.best_bias_adjustments = self.bias_adjustments.copy()
+                if total_error < self.best_error:
+                    self.best_error = total_error
+                    self.best_weights = self.weights.copy()
+                    self.best_bias = self.bias
+                    self.best_bias_adjustments = self.bias_adjustments.copy()
         
-                       self.error_history.append(total_error)
-                       self.bias_history.append(float(self.bias))
-                       self.reward_components_history.append({
-                           'rmse_reward': rmse_reward,
-                           'overall_bonus': overall_bonus,
-                           'loss_ratio_penalty': loss_ratio_penalty,
-                           'low_risk_overprediction': low_risk_overprediction,
-                           'high_risk_underprediction': high_risk_underprediction,
-                           'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
-                           'underprediction_penalty': underprediction_penalty,
-                           'overprediction_penalty': overprediction_penalty,
-                           'bias_regularization_penalty': bias_regularization_penalty,
-                           'total_reward': reward
-                       })
+                self.error_history.append(total_error)
+                self.bias_history.append(float(self.bias))
+                self.reward_components_history.append({
+                    'rmse_reward': rmse_reward,
+                    'overall_bonus': overall_bonus,
+                    'loss_ratio_penalty': loss_ratio_penalty,
+                    'low_risk_overprediction': low_risk_overprediction,
+                    'high_risk_underprediction': high_risk_underprediction,
+                    'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
+                    'underprediction_penalty': underprediction_penalty,
+                    'overprediction_penalty': overprediction_penalty,
+                    'bias_regularization_penalty': bias_regularization_penalty,
+                    'total_reward': reward
+                })
         
-                       self.step_count += 1
-                       done = self.step_count >= self.max_steps
-                       truncated = False
+                self.step_count += 1
+                done = self.step_count >= self.max_steps
+                truncated = False
         
-                       if abs(self.bias - self.target_bias) > self.bias_deviation_threshold:
-                           self.bias = self.target_bias
-                           done = True
-                           reward -= 10.0
+                if abs(self.bias - self.target_bias) > self.bias_deviation_threshold:
+                    self.bias = self.target_bias
+                    done = True
+                    reward -= 10.0
     
-                       info = {
-                           'total_error': total_error,
-                           'best_error': self.best_error,
-                           'best_weights': self.best_weights,
-                           'best_bias': self.bias,
-                           'best_bias_adjustments': self.bias_adjustments,
-                           'weighted_rmse': weighted_rmse,
-                           'loss_ratio': loss_ratio,
-                           'low_risk_overprediction': low_risk_overprediction,
-                           'high_risk_underprediction': high_risk_underprediction,
-                           'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
-                           'temp_metrics': temp_metrics
-                       }
+                info = {
+                    'total_error': total_error,
+                    'best_error': self.best_error,
+                    'best_weights': self.best_weights,
+                    'best_bias': self.bias,
+                    'best_bias_adjustments': self.bias_adjustments,
+                    'weighted_rmse': weighted_rmse,
+                    'loss_ratio': loss_ratio,
+                    'low_risk_overprediction': low_risk_overprediction,
+                    'high_risk_underprediction': high_risk_underprediction,
+                    'high_risk_excessive_overprediction': high_risk_excessive_overprediction,
+                    'temp_metrics': temp_metrics
+                }
         
-                       return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), reward, done, truncated, info
+                return np.concatenate([self.weights, [self.bias], self.bias_adjustments]), reward, done, truncated, info
 
-                   def render(self, mode='human'):
-                       pass
+            def render(self, mode='human'):
+                pass
 
-          
-          
-          
         eta = min(eta, 0.3)
         initial_weights = [weight_overall, weight_age, weight_vehicle, weight_car]
         env = WeightOptimizationEnv(
@@ -774,7 +749,7 @@ if st.sidebar.button("Update & Optimize"):
             learning_rate=0.0003
         )
         with st.spinner(f"Training RL agent for {total_timesteps} timesteps... This may take a few minutes."):
-            model.learn(total_timesteps=total_timesteps)  # Uses 3000 by default now
+            model.learn(total_timesteps=total_timesteps)
     
         best_weights = env.best_weights
         best_bias = env.best_bias
@@ -799,32 +774,33 @@ if st.sidebar.button("Update & Optimize"):
         optimized_params = {'bias': best_bias, 'eta': eta, 'max_depth': max_depth}
         weight_overall, weight_age, weight_vehicle, weight_car = best_weights
 
-        # Recompute final metrics with adjusted bias
-    # Use best_bias_adjustments only for RL, otherwise None
-    #bias_adj = dict(enumerate(best_bias_adjustments)) if opt_method == "Reinforcement Learning" and 'best_bias_adjustments' in locals() else None    
-        metrics = optimize_weighted_error(
-            bias=optimized_params['bias'],
-            eta=eta,
-            max_depth=max_depth,
-            use_shap=True,
-            subsample_data=False,
-            bias_adjustments=dict(enumerate(best_bias_adjustments)),
-            prepared_test_subset=prepared_test_subset
-        )
-        weighted_error = metrics['total_error']
-    
-     # Use the method-specific metrics directly
+    # Recompute final metrics with adjusted bias
+    metrics = optimize_weighted_error(
+        bias=optimized_params['bias'],
+        eta=eta,
+        max_depth=max_depth,
+        use_shap=True,
+        subsample_data=False,
+        bias_adjustments=dict(enumerate(best_bias_adjustments)) if opt_method == "Reinforcement Learning" else None,
+        prepared_test_subset=prepared_test_subset
+    )
+    weighted_error = metrics['total_error']
+
     if metrics is None:
         raise ValueError("No optimization method was selected or metrics were not computed.")
     final_metrics = metrics        
 
-    params = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-              'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma}
+    params = {
+        'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
+        'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma
+    }
     xgb_model = XGBRegressor(**params, n_estimators=nrounds)
     xgb_model.fit(train_data_sev, train_target_sev)
     shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, train_data_sev)
 
-    prepared_test_data['Severity_SHAPXGBAdj'] = prepared_test_data.apply(lambda row: calculate_severity(row, shap_values, np.exp(optimized_params['bias'])), axis=1)
+    prepared_test_data['Severity_SHAPXGBAdj'] = prepared_test_data.apply(
+        lambda row: calculate_severity(row, shap_values, np.exp(optimized_params['bias'])), axis=1
+    )
     test_data_ordered = prepared_test_data.sort_values('Predicted_Severity_GLM')
     test_data_ordered['Decile'] = pd.qcut(test_data_ordered['Predicted_Severity_GLM'], 10, labels=False, duplicates='drop')
     average_metrics = test_data_ordered.groupby('Decile').agg({
@@ -843,8 +819,14 @@ if st.sidebar.button("Update & Optimize"):
         opacity=0.3,
         yaxis='y2'
     ))
-    colors = {'Predicted_Severity_GLM': '#1f77b4', 'Predicted_Severity_GLM2': 'red', 'Severity_SHAPXGB': '#ff7f0e', 'Severity_SHAPXGBAdj': '#2ca02c', 'Actual_Sev': 'purple'}
-    line_styles = {'Predicted_Severity_GLM': 'solid', 'Predicted_Severity_GLM2': 'solid', 'Severity_SHAPXGB': 'dash', 'Severity_SHAPXGBAdj': 'dot', 'Actual_Sev': 'dot'}
+    colors = {
+        'Predicted_Severity_GLM': '#1f77b4', 'Predicted_Severity_GLM2': 'red', 'Severity_SHAPXGB': '#ff7f0e',
+        'Severity_SHAPXGBAdj': '#2ca02c', 'Actual_Sev': 'purple'
+    }
+    line_styles = {
+        'Predicted_Severity_GLM': 'solid', 'Predicted_Severity_GLM2': 'solid', 'Severity_SHAPXGB': 'dash',
+        'Severity_SHAPXGBAdj': 'dot', 'Actual_Sev': 'dot'
+    }
     for col in ['Predicted_Severity_GLM', 'Predicted_Severity_GLM2', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev']:
         trend_fig.add_trace(go.Scatter(
             x=average_metrics['Decile'], 
@@ -878,18 +860,20 @@ if st.sidebar.button("Update & Optimize"):
             exposure_text += f"  {level_name}: {exposure:.2f}\n"
 
     st.subheader("Optimization Results")
-    opt_result_text = (f"Optimization Method: {opt_method}\n"
-                       f"Optimized Bias Factor: {optimized_params['bias']:.4f}\n"
-                       f"Optimized ETA: {optimized_params['eta']:.4f}\n"
-                       f"Optimized Max Depth: {int(optimized_params['max_depth'])}\n"
-                       f"Weighted Error Score: {weighted_error:.4f}\n"
-                       f"Weighted RMSE: {final_metrics['weighted_rmse']:.4f}\n"
-                       f"Low-Risk Overprediction Penalty: {final_metrics['low_risk_overprediction']:.4f}\n"
-                       f"High-Risk Underprediction Penalty: {final_metrics['high_risk_underprediction']:.4f}\n"
-                       f"High-Risk Excessive Overprediction Penalty: {final_metrics['high_risk_excessive_overprediction']:.4f}\n"
-                       f"Loss Ratio: {final_metrics['loss_ratio']:.4f}\n"
-                       f"Weights Used:\n  Overall: {weight_overall}\n  Age: {weight_age}\n  Vehicle_Use: {weight_vehicle}\n  Car_Model: {weight_car}"
-                       f"{exposure_text}")
+    opt_result_text = (
+        f"Optimization Method: {opt_method}\n"
+        f"Optimized Bias Factor: {optimized_params['bias']:.4f}\n"
+        f"Optimized ETA: {optimized_params['eta']:.4f}\n"
+        f"Optimized Max Depth: {int(optimized_params['max_depth'])}\n"
+        f"Weighted Error Score: {weighted_error:.4f}\n"
+        f"Weighted RMSE: {final_metrics['weighted_rmse']:.4f}\n"
+        f"Low-Risk Overprediction Penalty: {final_metrics['low_risk_overprediction']:.4f}\n"
+        f"High-Risk Underprediction Penalty: {final_metrics['high_risk_underprediction']:.4f}\n"
+        f"High-Risk Excessive Overprediction Penalty: {final_metrics['high_risk_excessive_overprediction']:.4f}\n"
+        f"Loss Ratio: {final_metrics['loss_ratio']:.4f}\n"
+        f"Weights Used:\n  Overall: {weight_overall}\n  Age: {weight_age}\n  Vehicle_Use: {weight_vehicle}\n  Car_Model: {weight_car}"
+        f"{exposure_text}"
+    )
     st.text(opt_result_text)
 
     st.subheader("Variable Fits")
@@ -902,4 +886,3 @@ if st.sidebar.button("Update & Optimize"):
 
 if __name__ == "__main__":
     pass
-
