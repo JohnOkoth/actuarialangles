@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Dynamic Pricing With Reinforcement Learing">
+  <title>Dynamic Pricing Optimization</title>
+
+  <!-- Google Analytics Script -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-9S5SM84Q3T"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-9S5SM84Q3T');
+  </script>
+
+  <style>
+    /* Reset and base styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9f9f9;
+    }
+
+    /* Sidebar */
+    #side-menu {
+      width: 260px;
+      position: fixed;
+      top: 60px;
+      height: calc(100vh - 60px);
+      background: #fff;
+      border-right: 1px solid #e0e0e0;
+      padding: 20px;
+      transform: translateX(-100%);
+      transition: transform 0.3s ease-in-out;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+      z-index: 100;
+    }
+    #side-menu.open {
+      transform: translateX(0);
+    }
+    #side-menu a {
+      display: block;
+      padding: 10px 15px;
+      color: #555;
+      text-decoration: none;
+      font-weight: 500;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      transition: background 0.3s, color 0.3s;
+    }
+    #side-menu a:hover {
+      background: #007BFF;
+      color: #fff;
+    }
+
+    /* Menu Button */
+    #menu-toggle {
+      position: fixed;
+      top: 15px;
+      left: 15px;
+      background: #007BFF;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      cursor: pointer;
+      border-radius: 5px;
+      z-index: 200;
+      font-size: 16px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      transition: background 0.3s;
+    }
+    #menu-toggle:hover {
+      background: #0056b3;
+    }
+
+    /* Main Content */
+    #main-content {
+      margin-left: 280px;
+      padding: 40px 30px 60px 30px;
+      max-width: 1200px;
+    }
+    header h1 {
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      color: #007BFF;
+      font-weight: bold;
+    }
+    section {
+      margin-bottom: 60px;
+    }
+    section h2 {
+      font-size: 1.8rem;
+      margin-bottom: 10px;
+      color: #444;
+    }
+    section h1 {
+      font-size: 2rem;
+      margin-bottom: 15px;
+      color: #333;
+    }
+    p, li {
+      margin-bottom: 10px;
+    }
+    ul {
+      margin: 15px 0 30px 20px;
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-block;
+      background: #007BFF;
+      color: white;
+      padding: 12px 20px;
+      text-decoration: none;
+      border-radius: 30px;
+      font-weight: 600;
+      transition: background 0.3s ease;
+    }
+    .btn:hover {
+      background: #0056b3;
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 14px;
+      color: #aaa;
+    }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0px 2px 8px rgba(0,0,0,0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      #main-content {
+        margin-left: 0;
+        padding: 20px;
+      }
+      #side-menu {
+        width: 250px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Menu Toggle Button -->
+  <button id="menu-toggle">☰ Menu</button>
+
+  <!-- Sidebar -->
+  <nav id="side-menu">
+    <a href="#introduction">1. Introduction</a>
+    <a href="#rl-with-ppo-algorithm">2. Reinforcement Learning Solution</a>
+    <a href="#mdp-process">3. MDP Framework</a>
+    <a href="#how-rl-works">4. How RL Works</a>
+    <a href="#rl-flowchart">5. RL Flowchart</a>
+    <a href="#path-to-pricing">6. Pricing Path</a>
+    <a href="#rl-stand-outs">7. RL Stand-Outs</a>
+    <a href="#next-steps">8. Next Steps</a>
+  </nav>
+
+  <!-- Main Content -->
+  <div id="main-content">
+    <header>
+      <h1>Dynamic Pricing Optimization using Reinforcement Learning</h1>
+    </header>
+
+    <section id="introduction">
+      <h1>1. Introduction to Pricing Optimization with AI</h1>
+      <p class="intro">
+            In this <a href="https://drive.google.com/file/d/1HrD-uwzvoR0otjCDa0GFsPcZmI4YjSF6/view?usp=sharing" target="_blank">video presentation</a>, viewers will explore a dynamic pricing optimization model for personal insurance using reinforcement learning (RL), accessible via a previously <a href="https://actuarialangles-3.onrender.com" target="_blank", class="btn">shared dashboard</a>. The presentation addresses the pricing challenge of balancing accuracy, profitability, and customer value through a data-driven approach.
+        </p>
+
+        <h2>Key Points:</h2>
+
+        <h3>Pricing Challenges</h3>
+        <p>
+            The model predicts insurance claim severities based on factors like age, vehicle use, and car model to price policies accurately and fairly. Pricing requires balancing three goals:
+        </p>
+        <ul>
+            <li>Accurate severity predictions to avoid over- or underestimating claims.</li>
+            <li>Competitive premiums to retain customers while covering costs.</li>
+            <li>Customer satisfaction through fair pricing to build trust.</li>
+        </ul>
+
+        <h3>Limitations of Traditional Methods</h3>
+        <p>
+            Traditional approaches like Generalized Linear Models (GLM) and Bayesian optimization lack dynamic adaptability, struggling to adjust to new data or changing customer behaviors, resulting in less accurate and fair predictions.
+        </p>
+
+        <h3>Reinforcement Learning Solution</h3>
+        <p>
+            RL offers a dynamic, adaptive approach that fine-tunes model parameters (e.g., weights for age, vehicle use) through trial and error. Unlike traditional methods, RL learns from feedback, optimizing for accuracy, competitiveness, and fairness.
+        </p>
+
+        <h3>RL Results</h3>
+        <p>
+            Over 5120 optimization steps, RL reduced prediction errors, balanced over- and under-predictions, maintained a target loss ratio of 0.7, and outperformed Bayesian optimization with a lower root mean square error, ensuring more accurate and fair pricing.
+        </p>
+
+        <h3>What's Next?</h3>
+        <p>
+            The presentation will demonstrate how RL works, showcase achieved results, and discuss future improvements for better business and customer outcomes in insurance pricing. Stay tuned for an in-depth exploration of this innovative approach.
+        </p>
+      <p><a href="https://drive.google.com/file/d/1HrD-uwzvoR0otjCDa0GFsPcZmI4YjSF6/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <!-- Additional sections here -->
+    <section id="rl-with-ppo-algorithm">
+      <h1>2.My Solution to Reinforcement Learning</h1>
+        <p class="intro">
+            In this <a href="https://drive.google.com/file/d/19dGsdWYLUvWrgfrkUXI6NjqQouFVnLDO/view?usp=sharing" target="_blank">video presentation</a>, titled "My Solution to Reinforcement Learning," viewers will learn about an advanced solution for optimizing a model tuning dashboard for personal insurance pricing using reinforcement learning (RL) with the Proximal Policy Optimization (PPO) algorithm. The focus is on predicting insurance claim severity based on factors like age, vehicle use, and car model to set accurate and fair premiums.
+        </p>
+
+        <h3>Building the Solution with RL and PPO</h3>
+        <ul>
+            <li>RL, using the PPO algorithm, acts as a smart assistant that dynamically adjusts model weights (e.g., importance of age) and biases to fine-tune predictions.</li>
+            <li>It balances multiple objectives: minimizing prediction errors, targeting a loss ratio of 0.7 for financial stability, and ensuring fairness by penalizing over- and under-predictions for low- and high-risk customers.</li>
+            <li>RL outperforms static methods like Bayesian optimization, offering flexibility and adaptability.</li>
+        </ul>
+
+        <h3>Why RL Was Chosen</h3>
+        <ul>
+            <li>RL iteratively adapts to data patterns over time, unlike static methods that provide one-time solutions.</li>
+            <li>Over 5120 steps, RL improved its reward from -660 to -267, ensuring the pricing model remains accurate and fair as customer behaviors or market conditions change.</li>
+        </ul>
+
+        <h3>Comparison with Bayesian Optimization</h3>
+        <p>
+            A bar chart compares RL to Bayesian optimization across key metrics:
+			<img src="images/rl_vs_bayesian.png" alt="PowerPoint Presentation" 
+           style="max-width: 100%; max-height: 500px; display: block; margin: 15px auto;">
+        </p>
+        <ul>
+            <li><strong>Weighted Root Mean Square Error (RMSE):</strong> RL achieves a lower RMSE, indicating more accurate predictions closer to actual claim costs.</li>
+            <li><strong>High-Risk Under-Prediction Penalty:</strong> RL prioritizes capturing true risk for high-risk customers, accepting higher penalties to avoid underestimation.</li>
+            <li><strong>Low-Risk Over-Prediction Penalty:</strong> RL’s higher penalty reflects its focus on fairness, minimizing overcharging low-risk customers.</li>
+            <li><strong>High-Risk Excessive Over-Prediction Penalty:</strong> RL’s adaptability captures complex data patterns, prioritizing overall accuracy.</li>
+            <li><strong>Other Metrics (e.g., learning rate, bias):</strong> RL optimizes these marginally better than Bayesian.</li>
+        </ul>
+        <p>
+            RL outperforms Bayesian across most metrics, delivering a more accurate, fair, and balanced pricing model.
+        </p>
+
+        <h3>Project Benefits</h3>
+        <ul>
+            <li><strong>Better Accuracy:</strong> Lower RMSE ensures premiums reflect true claim costs.</li>
+            <li><strong>Improved Fairness:</strong> Balanced pricing for low- and high-risk customers builds trust and satisfaction.</li>
+            <li><strong>Financial Balance:</strong> Maintains a 0.7 loss ratio for competitiveness and stability.</li>
+            <li><strong>Adaptability:</strong> RL’s iterative learning keeps the model responsive to new data, keeping the business ahead.</li>
+        </ul>
+
+        <h3>Conclusion and Future Steps</h3>
+        <p>
+            The presentation concludes by highlighting RL with PPO as a superior, dynamic solution compared to traditional methods, with the bar chart demonstrating reduced errors and enhanced fairness. Future steps include refining RL, scaling to larger datasets, and applying it to new challenges. Viewers will see how RL’s adaptability and performance drive better accuracy, customer satisfaction, and financial outcomes for the insurance business.
+        </p>
+      <p><a href="https://drive.google.com/file/d/19dGsdWYLUvWrgfrkUXI6NjqQouFVnLDO/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <section id="mdp-process">
+      <h1>3. Markov Decision Process (MDP) Framework</h1>
+        <p class="intro">
+            In this <a href="https://drive.google.com/file/d/1IAGa4Cj8THogsUj-DB2QssGMLn646KbC/view?usp=sharing" target="_blank">video presentation</a>, titled "Markov Decision Process (MDP) Framework," viewers will explore how the MDP framework powers reinforcement learning (RL) in optimizing a model tuning dashboard for predicting insurance claim severities based on factors like age, vehicle use, and car model. The goal is to achieve accurate, fair, and financially balanced pricing.
+        </p>
+
+        <h2>MDP Framework Overview</h2>
+        <p>
+            The MDP framework, illustrated in a diagram, is the backbone of the RL approach, comprising four components in a cyclical process:
+        </p>
+        <ul>
+            <li><strong>State:</strong> Represents the current model settings, including weights for factors (e.g., 0.5 for accuracy, 0.2 for age, 0.15 for vehicle use, 0.15 for car model) and a bias factor (e.g., 5.4).</li>
+            <li><strong>Action:</strong> Small, deliberate tweaks to weights or bias (e.g., increasing age weight by 0.05 or decreasing bias by 0.01) to test configurations.</li>
+            <li><strong>Reward:</strong> A score reflecting the action’s effectiveness, designed to minimize prediction errors, target a 0.7 loss ratio for financial balance, and ensure fairness by penalizing over-predictions for low-risk customers and under-predictions for high-risk customers.</li>
+            <li><strong>Transition:</strong> Moves the agent to a new state with updated weights and bias after an action, restarting the cycle to refine the pricing model.</li>
+        </ul>
+
+        <h2>How MDP Fits the Project</h2>
+        <ul>
+            <li>The MDP framework is ideal as it enables systematic exploration of weight and bias combinations, learning from feedback without needing historical data (Markov property).</li>
+            <li>Starting from an initial state, the RL agent makes tweaks, evaluates rewards, and transitions to new states, progressively optimizing the model for accuracy and fairness.</li>
+			<img src="images/transition.png" alt="PowerPoint Presentation" 
+           style="max-width: 100%; max-height: 300px; display: block; margin: 15px auto;">
+        </ul>
+
+        <h2>Results and Benefits</h2>
+        <ul>
+            <li>Over 5120 steps, the RL agent improved the reward from -660 to -267, indicating better predictions (to be shown in upcoming charts).</li>
+            <li>The agent minimized root mean square error while maintaining a 0.7 loss ratio, ensuring fair and sustainable pricing.</li>
+            <li>The structured MDP approach automates tedious manual tuning, saving time and enhancing outcomes for the insurance business.</li>
+        </ul>
+
+        <h2>Conclusion and Future Steps</h2>
+        <p>
+            The presentation emphasizes that the MDP framework provides a clear roadmap for RL to make data-driven adjustments, steadily improving model accuracy and fairness. Viewers will see how this structured approach optimizes pricing and learn about future refinements, such as enhancing the reward system or exploring additional parameters. Stay tuned for further insights and results.
+        </p>
+      <p><a href="https://drive.google.com/file/d/1IAGa4Cj8THogsUj-DB2QssGMLn646KbC/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <section id="how-rl-works">
+       <h1>4. How the Reinforcement Learning Process Works</h1>
+        <p class="intro">
+            In this <a href="https://drive.google.com/file/d/1ZVm2ubLcPbgun5feSWZlxpRLhjhqNy9g/view?usp=sharing" target="_blank">video presentation</a>, titled "How the Reinforcement Learning Process Works," viewers will gain insight into the mechanics of the reinforcement learning (RL) process powering the model tuning dashboard for predicting insurance claim severities based on factors like age, vehicle use, and car model. The aim is to set accurate and fair premiums.
+        </p>
+
+        <h3>Engine Under the Hood</h3>
+        <p>
+            The RL process comprises two core components:
+        </p>
+        <ul>
+            <li><strong>Environment (Weight Optimization):</strong> Acts as a testing ground where the RL agent adjusts weights (e.g., importance of age, accuracy) and bias. The environment evaluates these tweaks by comparing predictions to actual claim costs, providing feedback via a reward (e.g., assessing if increasing age weight by 0.05 improves accuracy and fairness).</li>
+            <li><strong>PPO Algorithm:</strong> The brain of the system, Proximal Policy Optimization (PPO) updates the agent’s strategy (policy) over ~5000 time steps. It ensures safe, gradual updates, refining the approach based on feedback. Over 5120 steps, the reward improved from -660 to -267, showing better adjustments (to be shown in a chart).</li>
+        </ul>
+
+        <h3>Convergence (Finding the Best Settings)</h3>
+        <p>
+            The RL process aims to converge on optimal weights and bias, minimizing the root mean square error (RMSE), which includes prediction errors, fairness across risk levels, and a target loss ratio of 0.7 for financial balance. By the end of 5120 steps, the agent achieved settings that significantly reduced errors, enhancing model accuracy and reliability.
+        </p>
+
+        <h3>Results (Outperforming Other Methods)</h3>
+        <p>
+            RL, using the weight optimization environment and PPO, outperformed Bayesian optimization by achieving a lower RMSE, indicating superior accuracy. It also ensured fairness by balancing predictions for low- and high-risk customers, crucial for equitable pricing.
+        </p>
+
+        <h3>Visualizing Progress</h3>
+        <p>
+            A chart (presented in the slide) illustrates the reward improvement from -670 to ~-200 over 5120 steps, with each point reflecting average performance across episodes. The curve rises, peaking around 4352 steps (highlighted in red), where the agent reaches optimal performance, minimizing errors and stabilizing the loss ratio. Beyond this, improvements plateau, signaling convergence.
+			<img src="images/reward_curve.png" alt="PowerPoint Presentation" 
+           style="max-width: 100%; max-height: 300px; display: block; margin: 15px auto;">
+        </p>
+
+        <h3>Conclusion and Future Steps</h3>
+        <p>
+            The presentation underscores that the RL process, driven by the weight optimization environment and PPO, optimizes the pricing model in a smart, automated way. It evaluates adjustments over 5000+ steps, converges to optimal settings, and surpasses methods like Bayesian optimization, delivering a more accurate, fair, and financially balanced model. Viewers will learn about the results and future steps to build on this success. Stay tuned for further details.
+        </p>
+      <p><a href="https://drive.google.com/file/d/1ZVm2ubLcPbgun5feSWZlxpRLhjhqNy9g/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <section id="rl-flowchart">
+      <h1>5. Step-by-Step RL Process Flowchart</h1>
+      <h2>Reinforcement Learning Process Flowchart</h2>
+        <p class="intro">
+            In this <a href="https://drive.google.com/file/d/1_5p-Sbavv3WxriyIKTu1EFlaAq97a07h/view?usp=sharing" target="_blank">video presentation</a>, viewers will explore a detailed flowchart outlining the step-by-step reinforcement learning (RL) process for optimizing the model tuning dashboard, aimed at predicting insurance claim severities using factors like age, vehicle use, and car model to set accurate and fair premiums.
+        </p>
+
+        <h4>1. Launch RL System</h4>
+        <p>
+            Initialize the RL system with starting weights (e.g., 0.5 for accuracy, 0.2 for age, 0.15 for vehicle use, 0.15 for car model), a bias factor (e.g., 5.4), and the Proximal Policy Optimization (PPO) algorithm (configured with 128 steps, 64 batch size, 5 epochs, and a 0.0003 learning rate). This sets the initial pricing state.
+        </p>
+
+        <h4>2. Reset Environment</h4>
+        <p>
+            The weight optimization environment resets weights, bias, and risk-level (decile) adjustments to a clean starting point (e.g., initial weights or best state found), ensuring no interference from prior iterations.
+        </p>
+
+        <h4>3. Choose Adjustments</h4>
+        <p>
+            The RL agent selects tweaks to weights (range: -0.05 to 0.1), bias (range: -0.05 to 0.05), or risk-level adjustments (e.g., increasing age weight from 0.2 to 0.25 or decreasing bias from 5.4 to 5.39) to improve fairness, guided by PPO’s policy to maximize future rewards.
+        </p>
+
+        <h4>4. Update Pricing Model</h4>
+        <p>
+            Apply adjustments to the pricing model using XGBoost, a gradient boosting algorithm, to generate updated claim severity predictions. The model is rerun with new weights/bias, and predictions are evaluated against actual claim costs, transitioning to a new state.
+        </p>
+
+        <h4>5. Calculate Reward</h4>
+        <p>
+            The environment computes a reward based on:
+        </p>
+        <ul>
+            <li><strong>Root Mean Square Error (RMSE):</strong> Measures prediction accuracy (lower is better).</li>
+            <li><strong>Loss Ratio:</strong> Targets 0.7 (claims paid/premiums collected), with penalties for deviations.</li>
+            <li><strong>Fairness Penalties:</strong> For over-predictions (low-risk customers), under-predictions (high-risk customers), and excessive over-predictions (high-risk).</li>
+        </ul>
+        <p>
+            The reward function (to be shown in Python) combines RMSE, loss ratio penalty, fairness penalties, and bias regularization. Rewards improved from -660 to -267 over 5120 steps, indicating better adjustments.
+			
+        </p>
+
+        <h4>6. Train PPO Agent</h4>
+        <p>
+            The PPO agent uses reward feedback to refine its policy over 5 epochs and 64 batches, collecting state, action, and reward data. Techniques like clipped surrogate objectives ensure stable updates, favoring high-reward adjustments (e.g., increasing age weight) in future cycles.
+        </p>
+
+        <h4>7. Track Best Settings</h4>
+        <p>
+            The system monitors RMSE improvements. If new settings lower RMSE (e.g., from 100 to 90), they are saved as the best state. Optimal settings were found at ~4352 steps with a reward of -267, where improvements plateaued.
+        </p>
+
+        <h4>8. Decision Point</h4>
+        <p>
+            Check if training has reached 5120 steps (40 iterations of 128 steps each). If not, loop back to step 2 (reset environment) to continue training. If yes, proceed to step 9.
+        </p>
+
+        <h4>9. End Process</h4>
+        <p>
+            Training concludes, and the optimized pricing model (using the best settings from step 7) is ready for analysis/deployment. The final model at 4352 steps, with a reward of -267, achieved lower RMSE, maintained a 0.7 loss ratio, ensured fairness, and slightly outperformed Bayesian optimization.
+        </p>
+
+        <h3>Conclusion</h3>
+        <p>
+            The flowchart illustrates the iterative process—state, action, transition, and decision—systematically optimizing the pricing model. It improved rewards from -660 to -267, reduced prediction errors, and balanced accuracy, financial stability, and customer satisfaction, making the model robust and ready for deployment. Viewers will understand the comprehensive workflow from initialization to finalization, with clear visuals of the process.
+			<img src="images/Flow_Chart.png" 
+                 srcset="images/Flow_Chart_2x.png 2x" 
+                 alt="PowerPoint Presentation" 
+                 style="width: 100%; height: auto; max-height: 500px; display: block; margin: 15px auto; image-rendering: crisp-edges;">
+        </p>
+      <p><a href="https://drive.google.com/file/d/1_5p-Sbavv3WxriyIKTu1EFlaAq97a07h/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <section id="path-to-pricing">
+      <h2>6. Path to Pricing Grid</h2>
+      <p>
+        We analyze Definity's Personal Insurance book of business in more detail.
+      </p>
+      <p><a href="https://drive.google.com/file/d/1rRIW5LMTy89Av-DhHBkMRhfCdqjqHNae/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <section id="rl-stand-outs">
+      <h2>7. RL Stands out</h2>
+      <p>
+        This presentation discusses the actions taken by Definity to enhance profitability and risk management.
+      </p>
+      <p><a href="https://drive.google.com/file/d/1wVITpugxcmPcWNt2RKE3zGx2vtpJiDf2/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <section id="next-steps">
+      <h2>8. Next Steps - Customer Perceived Value</h2>
+      <p>
+        We discuss Definity Insurance's key insights for Q1 2024.
+      </p>
+      <p><a href="https://drive.google.com/file/d/15e-_qIMvulHKJMG-rqsPUapMwtHOG48R/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
+    </section>
+
+    <footer>
+      <p><a href="#top" class="btn">Back to Top</a></p>
+    </footer>
+	<footer>
+      <p><a href="index.html" class="btn">Back to Home</a></p>
+    </footer>
+  </div>
+
+  <!-- Toggle Sidebar Script -->
+  <script>
+    const menuToggle = document.getElementById('menu-toggle');
+    const sideMenu = document.getElementById('side-menu');
+    const menuLinks = document.querySelectorAll('#side-menu a');
+
+    menuToggle.addEventListener('click', () => {
+      sideMenu.classList.toggle('open');
+    });
+
+    menuLinks.forEach(link => {
+      link.addEventListener('click', () => {
+        sideMenu.classList.remove('open');
+      });
+    });
+  </script>
+</body>
+</html>
