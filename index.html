@@ -46,6 +46,21 @@
       transform: translateX(-100%); /* Initially hidden */
       z-index: 1000; /* Ensure it is above content */
     }
+	 h2 {
+            color: #333;
+            text-align: left;
+            font-size: 2.2em;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #333; /* Underline using border-bottom */
+            padding-bottom: 5px;
+            /* Alternative: text-decoration: underline; */
+        }
+	h1 {
+      font-size: 2.2rem;
+      margin-bottom: 20px;
+      color: #007BFF;
+      font-weight: bold;
+    }
 
     #side-menu.active {
       transform: translateX(0); /* Slide into view */
@@ -169,6 +184,7 @@
     <h2>Navigate</h2>
     <a href="#welcome" onclick="toggleMenu()">Welcome</a>
     <a href="#rate-indication" onclick="toggleMenu()">Rate Indication</a>
+	<a href="#enhancing-model-performance" onclick="toggleMenu()">Enhancing Model Perfomance</a>
     <a href="#quarterly-reports" onclick="toggleMenu()">Quarterly Reports</a>
     <a href="#dashboard" onclick="toggleMenu()">Dashboard Insights</a>
     <a href="#upcoming-topics" onclick="toggleMenu()">Upcoming Topics</a>
@@ -178,21 +194,136 @@
   <!-- Main Content -->
   <div id="main-content">
     <section id="welcome">
-      <h2>Welcome to Actuarial Angles</h2>
+      <h1>Welcome to Actuarial Angles</h1>
       <p>Dive into the world of data-driven decision-making for personal insurance. Actuarial Angles provides you with the knowledge and tools to master actuarial analytics. Explore practical applications, real-world projects, and simplified strategies for pricing in personal insurance.  Gain valuable insights into rate indications, pricing strategies, and more!</p>
       <p>Stay informed about the latest trends in personal property insurance. Our quarterly reports provide in-depth analysis of industry performance, including key insights into market trends, emerging risks, and competitive landscapes.  We examine factors influencing pricing strategies and provide valuable data to help you make informed decisions.</p>
     </section>
 
     <section id="rate-indication">
-      <h2>Rate Indication</h2>
+      <h2>1. Rate Indication</h2>
       <p>
         Learn about the rate indication process, its outcomes, and how insurers analyze losses, expenses, and profit margins. 
         <a href="rate-indication.html" class="btn">Watch the presentation here</a>.
       </p>
     </section>
+	
+	<section id="enhancing-model-performance">
+      <h2>2. Enhancing Model Perfomance</h2>
+      <p class="intro">
+            In the fast-evolving world of auto insurance, achieving precise, fair, and profitable pricing is a complex challenge. Artificial Intelligence (AI) has emerged as a transformative force, and at the heart of this revolution lies Reinforcement Learning (RL). This presentation explores how RL, blended with XGBoost and other optimization methods, has redefined model tuning for predicting insurance claim severities, delivering unparalleled accuracy, fairness, and financial stability.
+        </p>
+            
+        <h4>The Power of AI in Insurance Pricing</h4>
+        <p>
+            AI is reshaping industries by enabling data-driven decision-making at scale. In auto insurance, predicting claim severities based on factors like age, vehicle use, and car model is critical to setting premiums that balance profitability, competitiveness, and customer satisfaction. Traditional methods, such as Generalized Linear Models (GLM) or manual tuning, often fall short in adapting to dynamic data patterns or ensuring fairness across diverse customer profiles.
+        </p>
+        <p>
+            AI-driven approaches, particularly machine learning and RL, offer a solution by iteratively learning from data, optimizing predictions, and adapting to changing conditions. Our Auto Insurance Pricing Dashboard leverages AI to craft premiums that target a 0.7 loss ratio (claims paid/premiums collected), ensuring financial stability while maintaining fairness for both low- and high-risk customers.
+        </p>
+		
+         
+		 
+		 
+        <h4>Blending XGBoost with Optimization Methods</h4>
+        <p>
+            At the core of our pricing model is XGBoost, a powerful gradient boosting algorithm known for its speed and accuracy in handling structured data. XGBoost generates claim severity predictions by weighing factors like age, vehicle use, and car model, producing robust baseline predictions. However, to fine-tune these predictions for optimal accuracy, fairness, and financial balance, we integrated XGBoost with several optimization methods:
+        </p>
+        <ul>
+            <li><strong>Bayesian Optimization:</strong> Uses probabilistic models to search for optimal weights and biases, offering a faster alternative but limited by its static approach and inability to adapt to new data patterns.</li>
+            <li><strong>Random Search:</strong> Randomly tests weight and bias combinations, providing a baseline but often inefficient due to its lack of guided exploration.</li>
+            <li><strong>Single Parameter Tuning:</strong> Adjusts one parameter at a time (e.g., age weight), which is simple but slow and unable to capture complex interactions between factors.</li>
+            <li><strong>Manual Tuning:</strong> Relies on human expertise to adjust parameters, which is time-consuming, prone to bias, and impractical for large-scale optimization.</li>
+        </ul>
+        <p class="highlight">
+            While these methods improved XGBoost’s predictions to varying degrees, they lacked the adaptability and precision needed for a truly dynamic pricing model. This is where Reinforcement Learning emerged as a game-changer.
+        </p>
+	   
+        <h4>Why Reinforcement Learning is a Game-Changer</h4>
+        <p>
+            Reinforcement Learning (RL) transforms model optimization by treating it as a dynamic, iterative learning process. Unlike static methods, RL uses an agent that interacts with a custom environment, learns from feedback, and refines its strategy over time. In our Auto Insurance Pricing Dashboard, RL, powered by the Proximal Policy Optimization (PPO) algorithm, optimizes the weights and biases of the XGBoost model to achieve superior results.
+        </p>
+        <ul>
+            <li><strong>Dynamic Adaptation:</strong> RL iteratively adjusts weights (e.g., increasing age weight from 0.2 to 0.25) and biases (e.g., reducing bias from 5.4 to 5.39) over ~5000 timesteps, learning from each adjustment’s impact on prediction accuracy, fairness, and loss ratio.</li>
+            <li><strong>Superior Performance:</strong> Over 5120 timesteps, RL improved the reward from -660 to -267, achieving a lower Root Mean Square Error (RMSE) than Bayesian optimization, indicating more accurate predictions. It also balanced fairness by minimizing over-predictions for low-risk customers and under-predictions for high-risk customers.</li>
+            <li><strong>Convergence to Optimal Settings:</strong> RL converged to optimal settings around 4352 timesteps, where RMSE was minimized, the loss ratio stabilized at 0.7, and fairness penalties were balanced, outperforming all other methods.</li>
+        </ul>
+        <p>
+            RL’s ability to outperform alternatives stems from its flexibility in creating a custom environment, which we’ll explore next.
+        </p>
+        </li>
+		
+		
+		
+        <h4>The Flexibility of a Custom RL Environment</h4>
+        <p>
+            One of RL’s most powerful features is the ability to design a tailored environment that simulates the problem space. In our project, we created a <strong>WeightOptimizationEnv</strong>, a custom environment that serves as the testing ground for the RL agent. This environment is where the magic happens:
+        </p>
+        <ul>
+            <li><strong>State Representation:</strong> The environment tracks the current model settings, including weights for factors (e.g., 0.5 for accuracy, 0.2 for age) and a bias factor (e.g., 5.4), defining the pricing model’s state.</li>
+            <li><strong>Action Space:</strong> The RL agent makes small, deliberate tweaks to weights (range: -0.05 to 0.1) or bias (range: -0.05 to 0.05), testing new configurations to improve predictions.</li>
+            <li><strong>Reward Function:</strong> The environment evaluates each action by calculating a reward based on RMSE, loss ratio (targeting 0.7), and fairness penalties for over- and under-predictions. This reward guides the agent toward high-impact adjustments.</li>
+            <li><strong>Transition Dynamics:</strong> After an action, the environment updates the pricing model with new weights/bias, runs XGBoost to generate predictions, and transitions to a new state, restarting the cycle.</li>
+        </ul>
+        <p class="highlight">
+            This custom environment allowed us to precisely define the optimization problem, tailoring the reward function to balance accuracy, fairness, and financial stability. Unlike rigid methods like Bayesian optimization, the WeightOptimizationEnv adapts to feedback, enabling RL to explore complex interactions between factors and converge on optimal settings.
+        </p>
+
+        <h4>How RL Outshines Other Methods</h4>
+        <p>
+            To demonstrate RL’s superiority, we compared its performance against Bayesian optimization, Random Search, Single Parameter tuning, and Manual tuning across key metrics:
+        </p>
+        <ul>
+            <li><strong>Accuracy (RMSE):</strong> RL achieved the lowest RMSE, ensuring predictions closely matched actual claim costs, surpassing Bayesian by a significant margin.</li>
+            <li><strong>Fairness:</strong> RL balanced penalties for over-predictions (low-risk customers) and under-predictions (high-risk customers), ensuring equitable pricing, while other methods struggled with bias toward one group.</li>
+            <li><strong>Financial Stability:</strong> RL consistently maintained a 0.7 loss ratio, unlike Random Search, which showed erratic deviations, or Manual tuning, which was too slow to stabilize.</li>
+            <li><strong>Adaptability:</strong> RL’s iterative learning allowed it to respond to changing data patterns, while Bayesian and other methods provided static, one-time solutions.</li>
+        </ul>
+        <p>
+            Visuals in our dashboard, including interactive plots and a Markov heatmap, highlight RL’s reward improvement (from -660 to -267) and convergence at 4352 timesteps, making its advantages clear and engaging.
+        </p>
+
+        <h4>Benefits of the RL-Driven Approach</h4>
+        <p>
+            The integration of RL with XGBoost, enabled by the custom WeightOptimizationEnv, delivers transformative benefits for auto insurance pricing:
+        </p>
+        <ul>
+            <li><strong>Unmatched Accuracy:</strong> Lower RMSE ensures premiums reflect true claim costs, reducing financial risk for the insurer.</li>
+            <li><strong>Enhanced Fairness:</strong> Balanced pricing for low- and high-risk customers fosters trust and satisfaction, improving retention.</li>
+            <li><strong>Financial Stability:</strong> A stable 0.7 loss ratio supports competitiveness and profitability in a dynamic market.</li>
+            <li><strong>Automation and Efficiency:</strong> RL automates tedious tuning, saving time and resources compared to Manual or Single Parameter methods.</li>
+            <li><strong>Future-Proof Adaptability:</strong> RL’s iterative learning ensures the model remains relevant as customer behaviors or market conditions evolve.</li>
+        </ul>
+
+        <h4>Looking Ahead: The Future of RL in Insurance</h4>
+        <p>
+            The success of RL in our Auto Insurance Pricing Dashboard is just the beginning. Future enhancements include refining the reward function to prioritize specific fairness metrics, scaling RL to larger datasets, and applying it to other insurance challenges, such as fraud detection or customer segmentation. By leveraging RL’s flexibility and power, we can continue to push the boundaries of AI-driven innovation in insurance.
+        </p>
+        <p>
+            RL’s ability to create custom environments tailored to specific problems sets it apart as a game-changer, not just in insurance but across industries. Its integration with XGBoost demonstrates how AI can combine the strengths of different techniques to achieve remarkable results.
+        </p>
+
+        <p class="disclaimer">
+            <strong>Disclaimer:</strong> Training RL’s WeightOptimizationEnv takes ~10 minutes (5000 timesteps) to deliver its stellar results. For quicker feedback, users can explore Bayesian or Manual tuning in the dashboard, but RL’s superior accuracy and fairness make it worth the wait.
+        </p>
+
+        <div class="link-section">
+            <h4>Access the Main RL Presentation</h4>
+            <p>
+                Want to dive deeper into the mechanics of Reinforcement Learning? Check out our comprehensive presentation, "My Solution to Reinforcement Learning," for an in-depth look at how RL powers our pricing dashboard.
+            </p>
+            <p>
+                <a href="Enhancing_Model.html" target="_blank">View the Main RL Presentation</a>
+            </p>
+        </div>
+
+        <h4>Conclusion</h4>
+        <p>
+            Reinforcement Learning, powered by a custom WeightOptimizationEnv and integrated with XGBoost, has revolutionized auto insurance pricing. Its flexibility, adaptability, and superior performance over traditional methods like Bayesian optimization make it a true game-changer. By automating optimization, ensuring fairness, and maintaining financial balance, RL delivers a pricing model that is accurate, equitable, and ready for the future. Explore our Auto Insurance Pricing Dashboard to witness the power of RL and see why AI is transforming the industry, one prediction at a time.
+        </p>
+    </section>
 
     <section id="quarterly-reports">
-      <h2>Quarterly Reports</h2>
+      <h2>3. Quarterly Reports</h2>
       <p>Stay ahead of the curve with our in-depth quarterly reports. Dive into presentations that analyze key actuarial trends and metrics, provide cutting-edge pricing strategies, and offer a comprehensive overview of industry performance.</p>
       <ul>
         <li><a href="Q3_2024_Report.html">Q3 2024 Report: Addressing CAT Losses, Inflation, and Strategic Growth</a></li>
@@ -203,7 +334,7 @@
 
 <!-- New Dashboard Insights Section -->
   <section id="dashboard">
-    <h2>Dashboard Insights</h2>
+    <h2>4. Dashboard Insights</h2>
 <ul>
         <li>
 
@@ -230,18 +361,38 @@
 
     <a href="https://actuarialangles-2.onrender.com" class="btn">View the Dashboard</a>
 </li>
+       <li>
+
+    <h3>Model Tuning Dashboard</h3>
+    <p class="intro">
+            Dive into our <a href="https://actuarialangles-3.onrender.com" target="_blank", class="btn">Auto Insurance Pricing Dashboard</a>, a game-changer for precision pricing! Powered by a hybrid XGBoost and Reinforcement Learning (RL) model, it crafts fair, profitable rates targeting a 0.7 loss ratio. Adjust parameters, visualize trends across Age, Vehicle, and Car factors, and see predictions come to life.
+        </p>
+
+        <h4>Why Explore?</h4>
+        <ul>
+            <li><strong>Choose Your Optimization:</strong> Test RL (our top performer) or faster alternatives like Bayesian, Random Search, Single Parameter, or Manual tuning.</li>
+            <li><strong>See the Difference:</strong> We’ve tested them all—RL shines for high-risk accuracy, but try each to compare speed and results yourself!</li>
+        </ul>
+
+        <p class="disclaimer">
+            <strong>Disclaimer:</strong> RL’s WeightOptimizationEnv takes ~10 minutes to train (5000 timesteps) for its stellar results. Prefer speed? Try Bayesian or Manual for quicker feedback, then dive into RL to see why it’s the best.
+        </p>
+
+    <a href="https://actuarialangles-3.onrender.com" class="btn">View the Dashboard</a>
+</li>
+
       </ul>
 
   </section>
 
     <section id="upcoming-topics">
-      <h2>Upcoming Topics</h2>
+      <h2>5. Upcoming Topics</h2>
       <p>We’re excited to share new insights soon! Stay tuned for our upcoming presentations:</p>
       <ul>
         <li>
           <h3>Enhancing the Pricing Model</h3>
           <p>Discover how data-driven techniques and advanced modeling approaches are transforming pricing strategies in the insurance industry. This upcoming presentation will explore the integration of customer insights, machine learning, and traditional methods to build hybrid models. Key topics include leveraging Usage-Based Insurance (UBI) data, optimizing prices for profitability and competitiveness, and incorporating external trends to drive optimal pricing performance.</p>
-          <span style="color: #555;"><strong>Status:</strong> Presentation Coming Soon</span>
+          <span style="color: #555;"><strong>Status:</strong> Partialy done by incorparating AI to pricing model</span>
         </li>
         <li>
           <h3>CAT Modeling</h3>
