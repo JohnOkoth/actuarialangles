@@ -415,34 +415,132 @@
         <p>
             The flowchart illustrates the iterative process—state, action, transition, and decision—systematically optimizing the pricing model. It improved rewards from -660 to -267, reduced prediction errors, and balanced accuracy, financial stability, and customer satisfaction, making the model robust and ready for deployment. Viewers will understand the comprehensive workflow from initialization to finalization, with clear visuals of the process.
 			<img src="images/Flow_Chart.png" 
-                 srcset="images/Flow_Chart_2x.png 2x" 
                  alt="PowerPoint Presentation" 
-                 style="width: 100%; height: auto; max-height: 500px; display: block; margin: 15px auto; image-rendering: crisp-edges;">
+                 style="width: 50%; height: auto; max-height: 500px; display: block; margin: 20px auto; image-rendering: crisp-edges;">
         </p>
       <p><a href="https://drive.google.com/file/d/1_5p-Sbavv3WxriyIKTu1EFlaAq97a07h/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
     </section>
 
     <section id="path-to-pricing">
       <h2>6. Path to Pricing Grid</h2>
-      <p>
-        We analyze Definity's Personal Insurance book of business in more detail.
-      </p>
+      <p class="intro">
+            In this video presentation, viewers will explore a visual representation of the reinforcement learning (RL) journey for optimizing the model tuning dashboard, aimed at predicting insurance claim severities using factors like age, vehicle use, and car model to set accurate and fair premiums.
+        </p>
+
+        <h2>Understanding the State-Action Grid</h2>
+        <p>
+            A diagram illustrates a grid where each square represents a state (model settings, e.g., weights of 0.5 for accuracy, 0.2 for age, 0.15 for vehicle use, 0.15 for car model, and a 5.4 bias factor).
+        </p>
+        <ul>
+            <li>Actions are small tweaks (e.g., increasing age weight by 0.05 or decreasing bias by 0.01) to improve the model.</li>
+            <li>Rewards (shown as brown buttons) provide feedback, scoring the tweak’s impact on accuracy, fairness across risk levels, and a target 0.7 loss ratio for financial stability. Higher rewards indicate better performance.</li>
+        </ul>
+
+        <h2>Agent’s Journey Through the Grid</h2>
+        <p>
+            The RL agent starts at the bottom-left state (initial settings) and follows arrows to new states by taking actions (e.g., adjusting age weight).
+        </p>
+        <ul>
+            <li>The environment provides rewards based on the new state’s performance (e.g., high reward for reducing errors without overcharging low-risk customers, low reward for under-predicting high-risk claims).</li>
+            <li>The agent explores, loops back, or tries new directions, learning iteratively to approach the goal state (bottom-right, green) with optimal weights and bias for accurate, fair, and sustainable pricing. Over 5120 steps, rewards improved from -660 to -267, with peak performance at 4352 steps (to be shown in charts).</li>
+        </ul>
+
+        <h2>Why This Process Matters</h2>
+        <p>
+            The state-action-reward cycle makes RL effective, systematically exploring settings, learning from feedback, and converging on an optimal solution, unlike traditional methods.
+        </p>
+        <ul>
+            <li><strong>Accuracy:</strong> Reduced prediction errors for reliable claim severity predictions.</li>
+            <li><strong>Fairness:</strong> Balanced pricing to avoid overcharging low-risk or undercharging high-risk customers.</li>
+            <li><strong>Efficiency:</strong> Automated process saves time compared to manual trial-and-error, delivering faster, better results.</li>
+        </ul>
+
+        <h2>Conclusion</h2>
+        <p>
+            The presentation concludes that the state-action grid visualizes how the RL agent navigates states, actions, and rewards to achieve a more accurate pricing model. The process has delivered impressive results, with plans to enhance the reward function with customer-focused metrics for an even better model. Viewers will gain a clear understanding of the RL journey through the grid diagram and its impact on pricing optimization. Stay tuned for further insights.
+			<img src="images/path_grid.png" 
+                 alt="PowerPoint Presentation" 
+                 style="width: 50%; height: auto; max-height: 300px; display: block; margin: 15px auto;">
+        </p>
       <p><a href="https://drive.google.com/file/d/1rRIW5LMTy89Av-DhHBkMRhfCdqjqHNae/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
     </section>
 
     <section id="rl-stand-outs">
       <h2>7. RL Stands out</h2>
-      <p>
-        This presentation discusses the actions taken by Definity to enhance profitability and risk management.
-      </p>
+      <p class="intro">
+            In this video presentation, viewers will explore why reinforcement learning (RL) outperforms traditional optimization methods for fine-tuning the model tuning dashboard, which predicts insurance claim severities based on factors like age, vehicle use, and car model to set accurate and fair premiums.
+        </p>
+
+        <h2>Comparing RL to Traditional Methods</h2>
+        <ul>
+            <li><strong>Bayesian Optimization:</strong> Systematic but less adaptive, exploring a fixed range of options. It struggles with complex weight and bias combinations, resulting in a higher root mean square error (RMSE) compared to RL due to its inability to adjust to new data patterns or changing conditions.</li>
+            <li><strong>Random Search:</strong> Lacks guidance, trying random combinations inefficiently. It takes longer to find decent settings and performs worse than Bayesian optimization, failing to match RL’s effectiveness.</li>
+            <li><strong>Reinforcement Learning:</strong> Dynamically balances multiple goals (minimizing prediction errors, ensuring fairness, targeting a 0.7 loss ratio) through trial and error. Over 5120 steps, RL improved rewards from -660 to -267, refining the model for better results (shown in a progression graph).</li>
+        </ul>
+
+        <h2>RL’s Adaptability Unlocks Better Insights</h2>
+        <p>
+            RL’s key advantage is its adaptability, exploiting data patterns missed by Bayesian and random search’s rigid or random strategies. It identifies optimal weights and bias, reducing RMSE while ensuring fairness (e.g., avoiding overcharging low-risk customers or undercharging high-risk ones). RL continuously improves with new data, keeping the pricing model accurate and relevant in dynamic insurance markets.
+        </p>
+
+        <h2>Results Speak for Themselves</h2>
+        <p>
+            RL outperformed Bayesian optimization and random search, achieving a lower RMSE, balancing over- and under-predictions across risk levels, and maintaining a 0.7 loss ratio. A previously shared chart highlights RL’s superior performance in metrics like RMSE and fairness penalties, confirming its dynamic approach delivers a more accurate and fair pricing model.
+        </p>
+
+        <h2>Conclusion</h2>
+        <p>
+            The presentation concludes that RL stands out for its dynamic goal balancing and adaptability, outperforming traditional methods like Bayesian optimization and random search. It has enabled a more accurate, fair, and financially balanced pricing model, with the potential to tackle new challenges or scale to larger datasets. Viewers are encouraged to explore the model tuning dashboard to see RL’s accuracy in action, noting that while it takes time, it delivers precise results aligned with strategic goals.
+        </p>
       <p><a href="https://drive.google.com/file/d/1wVITpugxcmPcWNt2RKE3zGx2vtpJiDf2/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
     </section>
 
     <section id="next-steps">
       <h2>8. Next Steps - Customer Perceived Value</h2>
-      <p>
-        We discuss Definity Insurance's key insights for Q1 2024.
-      </p>
+      <p class="intro">
+            In this video presentation, viewers will learn about the future enhancements planned for the reinforcement learning (RL) system used in the model tuning dashboard, which predicts insurance claim severities based on factors like age, vehicle use, and car model. The focus is on integrating customer-focused metrics to enhance accuracy, fairness, and customer satisfaction in pricing.
+        </p>
+
+        <h2>Feature Enhancement: Adding Customer Metrics</h2>
+        <p>
+            The RL system will be upgraded by incorporating customer perceived value metrics into the reward function to balance accuracy with customer satisfaction. These metrics include:
+        </p>
+        <ul>
+            <li><strong>Retention Rate:</strong> Encourages premiums that promote policy renewals by avoiding overcharging low-risk customers, fostering trust and loyalty.</li>
+            <li><strong>Conversion Rate:</strong> Boosts new sales by setting competitive, fair premiums to attract new customers.</li>
+            <li><strong>Churn Rate:</strong> Minimizes customer losses by penalizing pricing strategies that lead to high churn, such as overpredictions causing unfairly high premiums.</li>
+        </ul>
+
+        <h2>Current vs. Future Reward Metrics</h2>
+        <p>
+            A pie chart compares the current reward function (25% root mean square error for accuracy, 25% loss ratio targeting 0.7 for financial stability, 50% fairness penalties) with the future one.
+        </p>
+        <p>
+            The future reward function will allocate 50% to customer metrics (20% retention rate, 15% conversion rate, 15% churn rate) and 50% to accuracy (25%) and loss ratio (25%), prioritizing customer satisfaction alongside existing goals.
+        </p>
+		<img src="images/customer_perspective.png" 
+                 alt="PowerPoint Presentation" 
+                 style="width: 30%; height: auto; max-height: 300px; display: block; margin: 15px auto;">
+
+        <h2>How to Make It Happen</h2>
+        <p>
+            The reward function in the weight optimization environment will be updated to include retention, conversion, and churn rate terms. For example, the RL agent will be rewarded for premiums that drive renewals or penalized for pricing that increases churn.
+        </p>
+        <p>
+            The agent will learn to balance these new metrics with RMSE and loss ratio, dynamically adjusting weights and bias to optimize for accuracy, financial stability, and customer satisfaction.
+        </p>
+
+        <h2>Impact on the Book of Business</h2>
+        <ul>
+            <li><strong>Happier Customers:</strong> Fair, competitive pricing will increase renewals, attract new customers, and reduce churn.</li>
+            <li><strong>Balanced Outcomes:</strong> Maintains accuracy (via RMSE) and financial stability (via loss ratio) while prioritizing customer needs.</li>
+            <li><strong>Competitive Edge:</strong> A customer-centric pricing model will differentiate the insurer in the market, enhancing customer retention and acquisition while ensuring financial health.</li>
+        </ul>
+
+        <h2>Conclusion</h2>
+        <p>
+            The presentation concludes that integrating retention rate, conversion rate, and churn rate into the RL reward function will create a customer-first pricing model, balancing accuracy, financial stability, and satisfaction. This will lead to better business outcomes and a stronger market position. Viewers are invited to share feedback via email and stay tuned for updates on the enhanced project, expected in two weeks.
+        </p>
       <p><a href="https://drive.google.com/file/d/15e-_qIMvulHKJMG-rqsPUapMwtHOG48R/view?usp=sharing" target="_blank" class="btn">Watch the Video</a></p>
     </section>
 
