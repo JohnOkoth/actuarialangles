@@ -577,7 +577,14 @@ if st.sidebar.button("Update & Optimize"):
         import gymnasium as gym
         from gymnasium import spaces
         from stable_baselines3.common.env_util import make_vec_env
-        
+        import os
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+        physical_devices = tf.config.list_physical_devices('GPU')
+        if not physical_devices:
+            st.warning("No GPU detected. RL training will run on CPU.")
+        else:
+            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+            st.write("GPU detected and configured for RL training.")
         # Set global seeds for reproducibility (already set at script level, but reinforcing here)
         seed = 42
         np.random.seed(seed)
@@ -843,10 +850,19 @@ if st.sidebar.button("Update & Optimize"):
     final_metrics = metrics        
 
     params = {
-        'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-        'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma, 'seed': seed
+        'booster': 'gbtree', 
+        'objective': 'reg:gamma', 
+        'eta': eta, 
+        'max_depth': int(max_depth),
+        'min_child_weight': min_child_weight, 
+        'subsample': subsample, 
+        'colsample_bytree': colsample_bytree, 
+        'gamma': gamma, 
+        'seed': seed, 
+        'tree_method': 'gpu_hist', 
+        'predictor': 'gpu_predictor'
     }
-    xgb_model = XGBRegressor(**params, n_estimators=nrounds)
+    xgb_model = XGBRegressor(**params, n_estimators=nrounds, device='cuda')
     xgb_model.fit(train_data_sev, train_target_sev)
     shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, train_data_sev)
 
