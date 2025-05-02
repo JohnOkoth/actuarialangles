@@ -6,14 +6,9 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import GammaRegressor
 from scipy import optimize
 import shap
+from bayes_opt import BayesianOptimization
 from streamlit.components.v1 import html
 from xgboost import XGBRegressor, DMatrix
-
-# Set global seeds for reproducibility at the script level
-seed = 42
-np.random.seed(seed)
-np.random.seed(seed)
-pd.options.mode.chained_assignment = None  # Suppress chained assignment warnings
 
 # Set page config as the first command
 st.set_page_config(layout="centered")
@@ -70,7 +65,7 @@ def calculate_severity(row, shap_values, bias_base, decile=None, bias_adjustment
 def find_reference_levels(data, categorical_vars, exposure_col):
     ref_levels = []
     for var in categorical_vars:
-        exposure_by_level = data.groupby(var, observed=False)[exposure_col].sum().reset_index()
+        exposure_by_level = data.groupby(var)[exposure_col].sum().reset_index()
         ref_level = exposure_by_level.loc[exposure_by_level[exposure_col].idxmax(), var]
         ref_levels.append({'variable': var, 'level': ref_level})
     return ref_levels
@@ -126,7 +121,7 @@ def create_trend_plot_with_exposure(category_name, data, one_hot_features):
         var_name='Variable',
         value_name='Factor_Level'
     )
-    category_data = category_data[category_data['Factor_Level'] == 1].groupby('Variable', observed=False).mean().reset_index()
+    category_data = category_data[category_data['Factor_Level'] == 1].groupby('Variable').mean().reset_index()
     category_data = category_data[category_data['Variable'].str.contains(category_name)]
     category_data = category_data.melt(
         id_vars=['Variable'], 
@@ -140,7 +135,7 @@ def create_trend_plot_with_exposure(category_name, data, one_hot_features):
         var_name='Variable',
         value_name='Factor_Level'
     )
-    category_exposure = category_exposure[category_exposure['Factor_Level'] == 1].groupby('Variable', observed=False)['Exposure'].sum().reset_index()
+    category_exposure = category_exposure[category_exposure['Factor_Level'] == 1].groupby('Variable')['Exposure'].sum().reset_index()
     category_exposure = category_exposure[category_exposure['Variable'].str.contains(category_name)]
 
     max_severity_value = category_data['Mean_Value'].max()
@@ -185,7 +180,7 @@ def create_trend_plot_with_exposure(category_name, data, one_hot_features):
 
 # Data Preprocessing
 for cat_var in ["Age", "Vehicle_Use", "Car_Model"]:
-    total_exposure = augmented_data.groupby(cat_var, observed=False)['Exposure'].sum().sort_values(ascending=False)
+    total_exposure = augmented_data.groupby(cat_var)['Exposure'].sum().sort_values(ascending=False)
     augmented_data[cat_var] = pd.Categorical(augmented_data[cat_var], categories=total_exposure.index, ordered=True)
 
 dummy_vars_sev = pd.get_dummies(augmented_data.drop(columns=["Group", "Severity", "Exposure", "Claim_Count"]), prefix_sep='_')
@@ -194,10 +189,10 @@ target_sev = augmented_data['Severity']
 target_exposure = augmented_data['Claim_Count']
 
 train_data_sev, test_data_sev, train_target_sev, test_target_sev = train_test_split(
-    model_data, target_sev, test_size=0.2, random_state=seed
+    model_data, target_sev, test_size=0.2, random_state=42
 )
 train_data_full, test_data_full, train_target_sev_full, test_target_sev_full = train_test_split(
-    dummy_vars_sev, target_sev, test_size=0.2, random_state=seed
+    dummy_vars_sev, target_sev, test_size=0.2, random_state=42
 )
 
 train_target_exposure = target_exposure.loc[train_data_full.index]
@@ -212,7 +207,7 @@ prepared_test_subset = prepared_test_data
 gamma_model = GammaRegressor(alpha=0.0001, max_iter=5000, tol=1e-8)
 model_severity_glm = gamma_model.fit(train_data_sev, train_target_sev)
 
-params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5, 'seed': seed}
+params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
 xgb_model2 = XGBRegressor(**params2, n_estimators=100)
 xgb_model2.fit(train_data_sev, train_target_sev)
 shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, train_data_sev)
@@ -251,7 +246,7 @@ if 'weighted_error' not in st.session_state:
 
 if st.sidebar.button("Update & Optimize"):
     # Model Training and Prediction
-    params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5, 'seed': seed}
+    params2 = {'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}
     xgb_model2 = XGBRegressor(**params2, n_estimators=100)
     xgb_model2.fit(train_data_sev, train_target_sev)
     shap_values2 = compute_shap_values_with_refs(xgb_model2, augmented_data, train_data_sev)
@@ -280,7 +275,7 @@ if st.sidebar.button("Update & Optimize"):
             value_name='Factor_Level'
         )
         active_rows = melted[melted['Factor_Level'] == 1]
-        exposure_by_level = active_rows.groupby('Variable', observed=False)['Exposure'].sum().to_dict()
+        exposure_by_level = active_rows.groupby('Variable')['Exposure'].sum().to_dict()
         exposure_by_category[category] = exposure_by_level
         total_exposure = active_rows['Exposure'].sum()
         total_exposure_by_category[category] = total_exposure
@@ -292,10 +287,10 @@ if st.sidebar.button("Update & Optimize"):
         lambda row: calculate_severity(row, shap_values2, np.exp(shap_values2[shap_values2['Feature'] == 'BIAS']['MeanSHAP'].iloc[0])), axis=1
     )
 
-    def optimize_weighted_error_notrl(bias, eta=eta, max_depth=max_depth, seed=seed):
+    def optimize_weighted_error_notrl(bias, eta=eta, max_depth=max_depth):
         params = {
             'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-            'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma, 'seed': seed
+            'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma
         }
         xgb_model = XGBRegressor(**params, n_estimators=nrounds)
         xgb_model.fit(train_data_sev, train_target_sev)
@@ -308,7 +303,7 @@ if st.sidebar.button("Update & Optimize"):
         
         temp_ordered = temp_test_data.sort_values('Predicted_Severity_GLM')
         temp_ordered['Decile'] = pd.qcut(temp_ordered['Predicted_Severity_GLM'], 10, labels=False, duplicates='drop')
-        temp_metrics = temp_ordered.groupby('Decile', observed=False).agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
+        temp_metrics = temp_ordered.groupby('Decile').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
         
         overall_rmse = np.sqrt(np.mean((temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev'])**2))
         
@@ -320,7 +315,7 @@ if st.sidebar.button("Update & Optimize"):
                 value_name='Factor_Level'
             )
             category_data = category_data[(category_data['Factor_Level'] == 1) & (category_data['Variable'].str.contains(category_name))]
-            category_data = category_data.groupby('Variable', observed=False).agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
+            category_data = category_data.groupby('Variable').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
             return np.sqrt(np.mean((category_data['Severity_SHAPXGBAdj'] - category_data['Actual_Sev'])**2))
         
         rmse_age = var_rmse("Age")
@@ -361,12 +356,12 @@ if st.sidebar.button("Update & Optimize"):
             'temp_metrics': temp_metrics
         }
 
-    def optimize_weighted_error(bias, eta, max_depth, use_shap=True, subsample_data=False, bias_adjustments=None, prepared_test_subset=None, seed=seed):
+    def optimize_weighted_error(bias, eta, max_depth, use_shap=True, subsample_data=False, bias_adjustments=None, prepared_test_subset=None):
         try:
             if subsample_data:
-                train_data_subset = train_data_sev.sample(frac=0.1, random_state=seed)
+                train_data_subset = train_data_sev.sample(frac=0.1, random_state=42)
                 train_target_subset = train_target_sev[train_data_subset.index]
-                test_data_subset = test_data_sev.sample(frac=0.1, random_state=seed)
+                test_data_subset = test_data_sev.sample(frac=0.1, random_state=42)
                 if prepared_test_subset is not None and 'Actual_Sev' in prepared_test_subset.columns:
                     temp_test_data = prepared_test_subset.loc[test_data_subset.index].copy()
                 else:
@@ -384,7 +379,7 @@ if st.sidebar.button("Update & Optimize"):
         
             params = {
                 'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
-                'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma, 'seed': seed
+                'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma
             }
             xgb_model = XGBRegressor(**params, n_estimators=100)
             xgb_model.fit(train_data_subset, train_target_subset)
@@ -432,7 +427,7 @@ if st.sidebar.button("Update & Optimize"):
                 temp_ordered['Predicted_Severity_GLM'] if 'Predicted_Severity_GLM' in temp_ordered.columns else temp_ordered['Severity_SHAPXGB'], 
                 10, labels=False, duplicates='drop'
             )
-            temp_metrics = temp_ordered.groupby('Decile', observed=False).agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
+            temp_metrics = temp_ordered.groupby('Decile').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
         
             overall_rmse = np.sqrt(np.mean((temp_metrics['Severity_SHAPXGBAdj'] - temp_metrics['Actual_Sev'])**2))
         
@@ -444,7 +439,7 @@ if st.sidebar.button("Update & Optimize"):
                     value_name='Factor_Level'
                 )
                 category_data = category_data[(category_data['Factor_Level'] == 1) & (category_data['Variable'].str.contains(category_name))]
-                category_data = category_data.groupby('Variable', observed=False).agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
+                category_data = category_data.groupby('Variable').agg({'Severity_SHAPXGBAdj': 'mean', 'Actual_Sev': 'mean'}).reset_index()
                 return np.sqrt(np.mean((category_data['Severity_SHAPXGBAdj'] - category_data['Actual_Sev'])**2))
         
             rmse_age = var_rmse("Age")
@@ -483,33 +478,27 @@ if st.sidebar.button("Update & Optimize"):
     # Optimization method selection
     if opt_method == "Single Parameter":
         def optimize_weighted_error_bias_only(bias):
-            return optimize_weighted_error_notrl(bias, eta=eta, max_depth=max_depth, seed=seed)['weighted_rmse']
+            return optimize_weighted_error_notrl(bias, eta=eta, max_depth=max_depth)['weighted_rmse']
 
         opt_result = optimize.minimize_scalar(optimize_weighted_error_bias_only, bounds=(bias_lower, bias_upper))
         optimized_params = {'bias': opt_result.x, 'eta': eta, 'max_depth': max_depth}
-        metrics = optimize_weighted_error_notrl(opt_result.x, eta, max_depth, seed=seed)
+        metrics = optimize_weighted_error_notrl(opt_result.x, eta, max_depth)
         weighted_error = metrics['total_error']
 
-        # Log outputs for debugging
-        print(f"Single Parameter Optimization - Final Total Error: {weighted_error}")
-        print(f"Final RMSE: {metrics['weighted_rmse']}")
-        print(f"Final Bias: {opt_result.x}")
-
     elif opt_method == "Bayesian":
-        from bayes_opt import BayesianOptimization
         bias_bounds = (bias_lower, bias_upper)
         eta_bounds = (0.01, 0.3)
         max_depth_bounds = (3, 10)
         error_threshold = 0
 
         def bayes_opt_func(bias, eta, max_depth):
-            return -optimize_weighted_error_notrl(bias, eta, int(round(max_depth)), seed=seed)['weighted_rmse']
+            return -optimize_weighted_error_notrl(bias, eta, int(round(max_depth)))['weighted_rmse']
 
         def optimize_with_early_stopping(bias_bounds, eta_bounds, max_depth_bounds, init_points=5, n_iter=20, error_threshold=0.0):
             optimizer = BayesianOptimization(
                 f=bayes_opt_func,
                 pbounds={'bias': bias_bounds, 'eta': eta_bounds, 'max_depth': max_depth_bounds},
-                random_state=seed,
+                random_state=42,
                 verbose=2
             )
 
@@ -519,8 +508,7 @@ if st.sidebar.button("Update & Optimize"):
             metrics = optimize_weighted_error_notrl(
                 optimized_params['bias'],
                 optimized_params['eta'],
-                optimized_params['max_depth'],
-                seed=seed
+                optimized_params['max_depth']
             )
             weighted_error = metrics['total_error']
             return optimized_params, metrics, weighted_error
@@ -528,11 +516,6 @@ if st.sidebar.button("Update & Optimize"):
         optimized_params, metrics, weighted_error = optimize_with_early_stopping(
             bias_bounds, eta_bounds, max_depth_bounds, init_points=5, n_iter=20, error_threshold=error_threshold
         )
-
-        # Log outputs for debugging
-        print(f"Bayesian Optimization - Final Total Error: {weighted_error}")
-        print(f"Final RMSE: {metrics['weighted_rmse']}")
-        print(f"Final Bias: {optimized_params['bias']}")
 
     elif opt_method == "Random Search":
         n_samples = 10
@@ -542,54 +525,28 @@ if st.sidebar.button("Update & Optimize"):
             'max_depth': np.random.choice([6, 8, 10], n_samples)
         })
         results = random_search.apply(
-            lambda row: optimize_weighted_error_notrl(row['bias'], row['eta'], row['max_depth'], seed=seed)['weighted_rmse'], axis=1
+            lambda row: optimize_weighted_error_notrl(row['bias'], row['eta'], row['max_depth'])['weighted_rmse'], axis=1
         )
         best_idx = results.idxmin()
         optimized_params = random_search.loc[best_idx].to_dict()
         metrics = optimize_weighted_error_notrl(
             optimized_params['bias'],
             optimized_params['eta'],
-            optimized_params['max_depth'],
-            seed=seed
+            optimized_params['max_depth']
         )
         weighted_error = results[best_idx]
 
-        # Log outputs for debugging
-        print(f"Random Search - Final Total Error: {weighted_error}")
-        print(f"Final RMSE: {metrics['weighted_rmse']}")
-        print(f"Final Bias: {optimized_params['bias']}")
-
     elif opt_method == "Manual":
         optimized_params = {'bias': bias_factor, 'eta': eta, 'max_depth': max_depth}
-        metrics = optimize_weighted_error_notrl(bias_factor, eta, max_depth, seed=seed)
+        metrics = optimize_weighted_error_notrl(bias_factor, eta, max_depth)
         weighted_error = metrics['total_error']
-
-        # Log outputs for debugging
-        print(f"Manual Optimization - Final Total Error: {weighted_error}")
-        print(f"Final RMSE: {metrics['weighted_rmse']}")
-        print(f"Final Bias: {bias_factor}")
 
     elif opt_method == "Reinforcement Learning":
         import tensorflow as tf
-        import numpy as np
-        import random
         from stable_baselines3 import PPO
         import gymnasium as gym
         from gymnasium import spaces
-        from stable_baselines3.common.env_util import make_vec_env
-        import os
-        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-        physical_devices = tf.config.list_physical_devices('GPU')
-        if not physical_devices:
-            st.warning("No GPU detected. RL training will run on CPU.")
-        else:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
-            st.write("GPU detected and configured for RL training.")
-        # Set global seeds for reproducibility (already set at script level, but reinforcing here)
-        seed = 42
-        np.random.seed(seed)
-        random.seed(seed)
-        tf.random.set_seed(seed)
+        from stable_baselines3.common.env_checker import check_env
         
         class WeightOptimizationEnv(gym.Env):
             def __init__(self, optimize_weighted_error_func, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
@@ -640,7 +597,6 @@ if st.sidebar.button("Update & Optimize"):
                 self.bias_deviation_threshold = 0.1
 
             def reset(self, seed=None, options=None):
-                super().reset(seed=seed)
                 self.weights = self.initial_weights.copy().astype(np.float32)
                 self.bias = self.initial_bias
                 self.bias_adjustments = np.zeros(10, dtype=np.float32)
@@ -675,8 +631,7 @@ if st.sidebar.button("Update & Optimize"):
                     use_shap=False,
                     subsample_data=True,
                     bias_adjustments=dict(enumerate(self.bias_adjustments)),
-                    prepared_test_subset=self.prepared_test_subset,
-                    seed=seed
+                    prepared_test_subset=self.prepared_test_subset
                 )
     
                 total_error = error_metrics['total_error']
@@ -764,27 +719,23 @@ if st.sidebar.button("Update & Optimize"):
 
         eta = min(eta, 0.3)
         initial_weights = [weight_overall, weight_age, weight_vehicle, weight_car]
-        env = make_vec_env(
-            lambda: WeightOptimizationEnv(
-                optimize_weighted_error_func=optimize_weighted_error,
-                initial_weights=initial_weights,
-                bias_lower=bias_lower,
-                bias_upper=bias_upper,
-                eta=eta,
-                max_depth=max_depth,
-                min_child_weight=min_child_weight,
-                subsample=subsample,
-                colsample_bytree=colsample_bytree,
-                gamma=gamma,
-                nrounds=nrounds,
-                weight_loss_ratio=weight_loss_ratio,
-                prepared_test_subset=prepared_test_subset
-            ),
-            n_envs=1,
-            seed=seed
+        env = WeightOptimizationEnv(
+            optimize_weighted_error_func=optimize_weighted_error,
+            initial_weights=initial_weights,
+            bias_lower=bias_lower,
+            bias_upper=bias_upper,
+            eta=eta,
+            max_depth=max_depth,
+            min_child_weight=min_child_weight,
+            subsample=subsample,
+            colsample_bytree=colsample_bytree,
+            gamma=gamma,
+            nrounds=nrounds,
+            weight_loss_ratio=weight_loss_ratio,
+            prepared_test_subset=prepared_test_subset
         )
-        
-        # Ensure XGBoost is deterministic by setting a seed (already handled in optimize_weighted_error)
+    
+        check_env(env, warn=True)
     
         model = PPO(
             "MlpPolicy",
@@ -794,17 +745,16 @@ if st.sidebar.button("Update & Optimize"):
             n_steps=128,
             batch_size=64,
             n_epochs=5,
-            seed=seed,
+            seed=42,
             learning_rate=0.0003
         )
         with st.spinner(f"Training RL agent for {total_timesteps} timesteps... This may take a few minutes."):
             model.learn(total_timesteps=total_timesteps)
     
-        # Access attributes from the underlying environment
-        best_weights = env.envs[0].env.best_weights
-        best_bias = env.envs[0].env.best_bias
-        best_bias_adjustments = env.envs[0].env.best_bias_adjustments
-        weighted_error = env.envs[0].env.best_error
+        best_weights = env.best_weights
+        best_bias = env.best_bias
+        best_bias_adjustments = env.best_bias_adjustments
+        weighted_error = env.best_error
     
         # Post-process the bias to align means
         temp_metrics = optimize_weighted_error(
@@ -814,8 +764,7 @@ if st.sidebar.button("Update & Optimize"):
             use_shap=True,
             subsample_data=False,
             bias_adjustments=dict(enumerate(best_bias_adjustments)),
-            prepared_test_subset=prepared_test_subset,
-            seed=seed
+            prepared_test_subset=prepared_test_subset
         )
         mean_actual_sev = temp_metrics['temp_metrics']['Actual_Sev'].mean()
         mean_pred_sev = temp_metrics['temp_metrics']['Severity_SHAPXGBAdj'].mean()
@@ -825,13 +774,6 @@ if st.sidebar.button("Update & Optimize"):
         optimized_params = {'bias': best_bias, 'eta': eta, 'max_depth': max_depth}
         weight_overall, weight_age, weight_vehicle, weight_car = best_weights
 
-        # Log outputs for debugging
-        print(f"Reinforcement Learning - Final Total Error: {weighted_error}")
-        print(f"Final Reward: {env.envs[0].env.reward_components_history[-1]['total_reward']}")
-        print(f"Final RMSE: {temp_metrics['weighted_rmse']}")
-        print(f"Final Weights: {best_weights}")
-        print(f"Final Bias: {best_bias}")
-
     # Recompute final metrics with adjusted bias
     metrics = optimize_weighted_error(
         bias=optimized_params['bias'],
@@ -840,8 +782,7 @@ if st.sidebar.button("Update & Optimize"):
         use_shap=True,
         subsample_data=False,
         bias_adjustments=dict(enumerate(best_bias_adjustments)) if opt_method == "Reinforcement Learning" else None,
-        prepared_test_subset=prepared_test_subset,
-        seed=seed
+        prepared_test_subset=prepared_test_subset
     )
     weighted_error = metrics['total_error']
 
@@ -850,19 +791,10 @@ if st.sidebar.button("Update & Optimize"):
     final_metrics = metrics        
 
     params = {
-        'booster': 'gbtree', 
-        'objective': 'reg:gamma', 
-        'eta': eta, 
-        'max_depth': int(max_depth),
-        'min_child_weight': min_child_weight, 
-        'subsample': subsample, 
-        'colsample_bytree': colsample_bytree, 
-        'gamma': gamma, 
-        'seed': seed, 
-        'tree_method': 'gpu_hist', 
-        'predictor': 'gpu_predictor'
+        'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': eta, 'max_depth': int(max_depth),
+        'min_child_weight': min_child_weight, 'subsample': subsample, 'colsample_bytree': colsample_bytree, 'gamma': gamma
     }
-    xgb_model = XGBRegressor(**params, n_estimators=nrounds, device='cuda')
+    xgb_model = XGBRegressor(**params, n_estimators=nrounds)
     xgb_model.fit(train_data_sev, train_target_sev)
     shap_values = compute_shap_values_with_refs(xgb_model, augmented_data, train_data_sev)
 
@@ -871,18 +803,10 @@ if st.sidebar.button("Update & Optimize"):
     )
     test_data_ordered = prepared_test_data.sort_values('Predicted_Severity_GLM')
     test_data_ordered['Decile'] = pd.qcut(test_data_ordered['Predicted_Severity_GLM'], 10, labels=False, duplicates='drop')
-    average_metrics = test_data_ordered.groupby('Decile', observed=False).agg({
+    average_metrics = test_data_ordered.groupby('Decile').agg({
         'Predicted_Severity_GLM': 'mean', 'Predicted_Severity_GLM2': 'mean', 'Severity_SHAPXGB': 'mean',
         'Actual_Sev': 'mean', 'Severity_SHAPXGBAdj': 'mean', 'Exposure': 'sum'
     }).reset_index()
-
-    # Log final metrics for consistency check
-    print(f"Final Metrics - Total Error: {weighted_error}")
-    print(f"Final RMSE: {final_metrics['weighted_rmse']}")
-    print(f"Low-Risk Overprediction Penalty: {final_metrics['low_risk_overprediction']}")
-    print(f"High-Risk Underprediction Penalty: {final_metrics['high_risk_underprediction']}")
-    print(f"High-Risk Excessive Overprediction Penalty: {final_metrics['high_risk_excessive_overprediction']}")
-    print(f"Loss Ratio: {final_metrics['loss_ratio']}")
 
     max_severity_value = max(average_metrics[['Predicted_Severity_GLM', 'Predicted_Severity_GLM2', 'Severity_SHAPXGB', 'Severity_SHAPXGBAdj', 'Actual_Sev']].max())
     max_exposure_value = average_metrics['Exposure'].max()
@@ -951,7 +875,6 @@ if st.sidebar.button("Update & Optimize"):
         f"{exposure_text}"
     )
     st.text(opt_result_text)
-# My Trigger Cloud Build
 
     st.subheader("Variable Fits")
     age_fig = create_trend_plot_with_exposure("Age", prepared_test_data, test_data_full.columns)
