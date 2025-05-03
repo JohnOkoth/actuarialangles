@@ -742,11 +742,11 @@ if st.sidebar.button("Update & Optimize"):
             env,
             verbose=1,
             tensorboard_log=None,
-            n_steps=128,
-            batch_size=64,
-            n_epochs=5,
+            n_steps=64,
+            batch_size=32,
+            n_epochs=3,
             seed=42,
-            learning_rate=0.0003
+            learning_rate=0.0001
         )
         with st.spinner(f"Training RL agent for {total_timesteps} timesteps... This may take a few minutes."):
             model.learn(total_timesteps=total_timesteps)
