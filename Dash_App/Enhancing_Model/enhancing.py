@@ -228,7 +228,7 @@ min_child_weight = st.sidebar.slider("Min Child Weight", 1, 3, 1, step=1)
 subsample = st.sidebar.slider("Sub Sample", 0.5, 0.9, 0.5, step=0.1)
 bias_factor = st.sidebar.slider("Bias Factor", bias_lower, bias_upper, (bias_lower + bias_upper) / 2, step=0.001)
 st.sidebar.markdown("**Note:** Total Timesteps controls RL training duration. Increase to 5000 for potentially better results")
-total_timesteps = st.sidebar.slider("Total Timesteps (RL)", 1000, 5000, 3000, step=1000)
+total_timesteps = st.sidebar.slider("Total Timesteps (RL)", 100, 200, 300, step=100)
 
 st.sidebar.header("Variable Weights")
 weight_overall = st.sidebar.number_input("Weight: Overall", 0.0, 1.0, 0.5, step=0.05)
@@ -548,15 +548,8 @@ if st.sidebar.button("Update & Optimize"):
         from gymnasium import spaces
         from stable_baselines3.common.env_checker import check_env
         
-        
-        # --- Option to Pre-train a Base XGBoost Model ---
-        base_xgb_model = XGBRegressor(**{'booster': 'gbtree', 'objective': 'reg:gamma', 'eta': 0.1, 'max_depth': 6, 'min_child_weight': 1, 'subsample': 0.5, 'colsample_bytree': 0.5}, n_estimators=100)
-        base_xgb_model.fit(train_data_sev, train_target_sev)
-        base_shap_values = compute_shap_values_with_refs(base_xgb_model, augmented_data, train_data_sev)
-
-        
         class WeightOptimizationEnv(gym.Env):
-            def __init__(self, optimize_weighted_error_func, base_shap_values, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
+            def __init__(self, optimize_weighted_error_func, bias_lower, bias_upper, eta, max_depth, min_child_weight, subsample, colsample_bytree, gamma, nrounds, weight_loss_ratio, prepared_test_subset, initial_weights=[0.4, 0.3, 0.2, 0.11]):
                 super(WeightOptimizationEnv, self).__init__()
                 self.initial_weights = np.array(initial_weights, dtype=np.float32)
                 self.weights = self.initial_weights.copy()
@@ -599,8 +592,7 @@ if st.sidebar.button("Update & Optimize"):
                 )
         
                 self.step_count = 0
-                self.base_shap_values = base_shap_values
-                self.max_steps = 30
+                self.max_steps = 100
                 self.target_bias = 5.4
                 self.bias_deviation_threshold = 0.1
 
@@ -729,7 +721,6 @@ if st.sidebar.button("Update & Optimize"):
         initial_weights = [weight_overall, weight_age, weight_vehicle, weight_car]
         env = WeightOptimizationEnv(
             optimize_weighted_error_func=optimize_weighted_error,
-            base_shap_values=base_shap_values,
             initial_weights=initial_weights,
             bias_lower=bias_lower,
             bias_upper=bias_upper,
