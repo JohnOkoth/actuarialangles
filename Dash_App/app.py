@@ -72,15 +72,40 @@ data = data_property if data_type == "Property" else data_auto
 
 metrics = sorted(data["Metric"].dropna().unique().tolist())
 companies = sorted(data["Company"].dropna().unique().tolist())
-time_periods = sorted(data["Time"].dropna().unique().tolist(), key=lambda x: (
-    ["Q1", "Q2", "Q3", "Q4", "H1", "H2"].index(x.split()[0]),
-    int(x.split()[1])
-))
+
+
+# 1) map each prefix to its sort order
+period_priority = {
+    "Q1": 0, "Q2": 1, "Q3": 2, "Q4": 3,
+    "H1": 4, "H2": 5,
+    # give bare years their own category (e.g. Full Year)
+    "FY": 6,
+}
+
+def sort_key(label):
+    parts = label.split()
+    if len(parts) == 2:
+        prefix, year = parts
+        year = int(year)
+    else:
+        # bare year → treat as “FY”
+        prefix = "FY"
+        year = int(parts[0])
+    return (year, period_priority[prefix])
+
+# then:
+time_periods = sorted(data["Time"].dropna().unique(), key=sort_key)
+
+
+#time_periods = sorted(data["Time"].dropna().unique().tolist(), key=lambda x: (
+ #   ["Q1", "Q2", "Q3", "Q4", "H1", "H2"].index(x.split()[0]),
+  #  int(x.split()[1])
+#))
 
 # --- Default Selections ---
 default_metrics = [metrics[0]] if metrics else []
 default_insurers = [ins for ins in ["Intact", "Definity"] if ins in companies]
-default_time = [tp for tp in ["Q1 2023", "Q1 2024", "Q2 2023", "Q2 2024", "Q3 2023", "Q3 2024"] if tp in time_periods]
+default_time = [tp for tp in ["Q1 2023", "Q1 2024", "Q2 2023", "Q2 2024", "Q3 2023", "Q3 2024", "Q4 2023", "Q4 2024"] if tp in time_periods]
 
 # --- User Selections ---
 selected_metrics = st.sidebar.multiselect("Select Metrics:", metrics, default=default_metrics)
