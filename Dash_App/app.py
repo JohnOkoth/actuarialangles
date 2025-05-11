@@ -73,7 +73,7 @@ time_view = st.sidebar.selectbox("Select Time View:", ["Quarterly", "Half-Yearly
 
 # Extract unique years from Time column
 years = sorted(set([t.split()[-1] for t in data["Time"].dropna().unique()]))
-selected_years = st.sidebar.multiselect("Select Years:", years, default=years[:2])
+selected_years = st.sidebar.multiselect("Select Years:", years, default=years[:3])
 
 # Define available periods based on time view
 period_mapping = {
